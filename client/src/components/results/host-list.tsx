@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FoundThrough, SourceTags } from "@/components/source-list";
 import { getHosts } from "@/lib/api";
-import { hostStatus, plural, statusTone } from "@/lib/format";
+import { hostStatus, networkLabel, plural, statusTone } from "@/lib/format";
 import type { Host, UrlType } from "@/lib/types";
 import { useDebounced, usePages } from "@/lib/use-pages";
 import { ListFooter, UrlList } from "./url-list";
@@ -15,10 +15,12 @@ interface Props {
   total: number;
   /** Hostname to show expanded initially (when arriving from the overview). */
   initialOpen?: string | null;
+  /** List only hosts served from this network (its number). */
+  asn?: number;
 }
 
 /** A searchable list of hosts, read from the server a page at a time. */
-export function HostList({ scanId, apex, total, initialOpen = null }: Props) {
+export function HostList({ scanId, apex, total, initialOpen = null, asn }: Props) {
   // Arriving for one host: search for it, so it is listed wherever it sorts.
   const [query, setQuery] = useState(initialOpen ?? "");
   const search = useDebounced(query.trim());
@@ -37,7 +39,14 @@ export function HostList({ scanId, apex, total, initialOpen = null }: Props) {
         onChange={(e) => setQuery(e.target.value)}
         className="h-9 w-full rounded-md border border-border bg-surface px-3 text-sm outline-none focus:border-accent sm:w-80"
       />
-      <HostRows key={search} scanId={scanId} apex={apex} search={search} initialOpen={initialOpen} />
+      <HostRows
+        key={search}
+        scanId={scanId}
+        apex={apex}
+        search={search}
+        initialOpen={initialOpen}
+        asn={asn}
+      />
     </div>
   );
 }
@@ -47,12 +56,13 @@ interface RowsProps {
   apex: string;
   search: string;
   initialOpen: string | null;
+  asn?: number;
 }
 
-function HostRows({ scanId, apex, search, initialOpen }: RowsProps) {
+function HostRows({ scanId, apex, search, initialOpen, asn }: RowsProps) {
   const [open, setOpen] = useState<string | null>(initialOpen);
   const { pages, loading, error, hasMore, loadMore } = usePages((after) =>
-    getHosts(scanId, { q: search, after }),
+    getHosts(scanId, { q: search, asn, after }),
   );
   const hosts = pages.flatMap((p) => p.hosts);
 
@@ -166,6 +176,18 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
             <span className="text-muted">Does not resolve ({dns.error ?? "no records"})</span>
           )}
         </Row>
+
+        {dns?.networks && dns.networks.length > 0 && (
+          <Row label="Served from">
+            {dns.networks.map((n) => (
+              <span key={n.asn} className="block">
+                {networkLabel(n)}
+                {n.country && <span className="text-muted"> · registered in {n.country}</span>}
+                {n.prefix && <span className="ml-2 font-mono text-xs text-muted">{n.prefix}</span>}
+              </span>
+            ))}
+          </Row>
+        )}
 
         <Row label="HTTP">
           {!http ? (

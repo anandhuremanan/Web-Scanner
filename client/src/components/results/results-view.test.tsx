@@ -150,3 +150,39 @@ describe("ResultsView for a running scan", () => {
     expect(tab(/^APIs/)?.getAttribute("aria-current")).toBe("page");
   });
 });
+
+describe("Hosting tab", () => {
+  const withProviders: ScanSummary = {
+    ...finished,
+    providers: [
+      { asn: 13335, name: "Cloudflare, Inc.", country: "US", hosts: 3 },
+      { asn: 47583, name: "AS-HOSTINGER", country: "IN", hosts: 1 },
+    ],
+  };
+
+  it("lists the networks and, when one is opened, its hosts", async () => {
+    render(<ResultsView scan={scan("completed")} result={withProviders} />);
+    expect(tab(/^Hosting/)?.textContent).toBe("Hosting2");
+    fireEvent.click(tab(/^Hosting/)!);
+
+    const hostinger = await screen.findByRole("button", { name: /AS-HOSTINGER \(AS47583\)/ });
+    expect(screen.getByRole("button", { name: /Cloudflare, Inc\. \(AS13335\)/ }).textContent).toContain("3 hosts");
+
+    api.getHosts.mockClear();
+    fireEvent.click(hostinger);
+    // The hosts of that network are asked for by its number.
+    await waitFor(() => expect(api.getHosts).toHaveBeenCalled());
+    expect(api.getHosts.mock.calls[0][1]).toMatchObject({ asn: 47583 });
+  });
+
+  it("explains itself for results without hosting information", () => {
+    render(<ResultsView scan={scan("completed")} result={finished} />);
+    fireEvent.click(tab(/^Hosting/)!);
+    expect(screen.getByText(/No hosting information/)).toBeTruthy();
+  });
+
+  it("is not shown while the scan is running", () => {
+    render(<ResultsView scan={scan("running")} result={liveSummary(scan("running"))} live />);
+    expect(tab(/^Hosting/)).toBeNull();
+  });
+});

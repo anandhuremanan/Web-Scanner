@@ -127,11 +127,19 @@ export function getSummary(id: string): Promise<ScanSummary> {
 export interface HostQuery {
   /** Keeps hosts whose name contains this text. */
   q?: string;
+  /** Keeps hosts with an address in this network (its number). */
+  asn?: number;
   after?: string;
 }
 
 export function getHosts(id: string, query: HostQuery = {}): Promise<HostPage> {
-  return request<HostPage>(resultPath(id, "hosts", { q: query.q, after: query.after }));
+  return request<HostPage>(
+    resultPath(id, "hosts", {
+      q: query.q,
+      asn: query.asn ? String(query.asn) : undefined,
+      after: query.after,
+    }),
+  );
 }
 
 export interface UrlQuery {

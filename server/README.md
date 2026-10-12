@@ -688,8 +688,8 @@ the same whatever the size of the result.
 
 | Endpoint | Returns |
 | --- | --- |
-| `GET /api/scans/{id}/summary` | everything but hosts and URLs: `domain`, `counts`, `limits`, `errors`, `technologies`, `stopReason`, `hostsOmitted` |
-| `GET /api/scans/{id}/hosts` | `{"hosts": [...], "next"}`: hosts in display order, each with its `counts` but without `urls`. `q` keeps hosts whose name contains it |
+| `GET /api/scans/{id}/summary` | everything but hosts and URLs: `domain`, `counts`, `limits`, `errors`, `technologies`, `providers` (the networks the hosts are served from, with a host count each), `stopReason`, `hostsOmitted` |
+| `GET /api/scans/{id}/hosts` | `{"hosts": [...], "next"}`: hosts in display order, each with its `counts` but without `urls`. `q` keeps hosts whose name contains it; `asn` keeps hosts with an address in that network |
 | `GET /api/scans/{id}/urls` | `{"urls": [...], "next"}`: URLs ordered by host, then path. `host` selects one host; `type` is a comma-separated list of `page`, `api`, `asset`, `unknown`; `q` matches the path, the title or (across hosts) the hostname |
 | `GET /api/scans/{id}/tree` | one level of a host's path tree (below) |
 | `GET /api/scans/{id}/export` | every URL as CSV (one row per URL), streamed |
@@ -844,6 +844,14 @@ URL fields:
   once per domain and the answer cached for `CACHE_CERT_TTL`; drop them from
   `SCAN_SUBDOMAIN_SOURCES` to stop using them. ip.thc.org states its limit
   in response headers (250 requests, refilled at one every 2 s).
+- **Networks.** For each resolved host the scanner asks Team Cymru's
+  IP-to-ASN service (over DNS, `origin.asn.cymru.com`) which network the
+  address belongs to, and records it as `dns.networks`: number, operator,
+  registered country and address block. It is the operator of the address,
+  so a host behind a CDN or proxy shows that service; and the country is
+  where the block is registered, not necessarily where the server is.
+  Answers are remembered per address; a lookup that fails is left out.
+  `SCAN_NETWORK_INFO=false` turns it off.
 - **DNS** is asked directly (`SCAN_DNS_SERVERS`, by default Cloudflare's and
   Google's public resolvers) rather than through the operating system: one
   question per host instead of three or more. Google documents 1,500

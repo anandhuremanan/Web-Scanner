@@ -296,6 +296,8 @@ var ErrBadQuery = errors.New("invalid query")
 type HostQuery struct {
 	// Search keeps hosts whose name contains it.
 	Search string
+	// ASN, if not zero, keeps hosts with an address in that network.
+	ASN int
 	// After is the Next of the previous page.
 	After string
 	Limit int

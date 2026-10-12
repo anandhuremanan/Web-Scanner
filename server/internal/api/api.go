@@ -336,8 +336,16 @@ func (h *handler) getHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
+	asn := 0
+	if v := q.Get("asn"); v != "" {
+		var err error
+		if asn, err = strconv.Atoi(v); err != nil || asn <= 0 {
+			writeError(w, http.StatusBadRequest, "asn must be a network number such as 13335")
+			return
+		}
+	}
 	h.withResult(w, r, func(rd scan.ResultReader) {
-		page, err := rd.Hosts(r.Context(), scan.HostQuery{Search: q.Get("q"), After: q.Get("after"), Limit: limit})
+		page, err := rd.Hosts(r.Context(), scan.HostQuery{Search: q.Get("q"), ASN: asn, After: q.Get("after"), Limit: limit})
 		if err != nil {
 			h.fail(w, r, err)
 			return

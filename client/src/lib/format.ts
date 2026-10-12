@@ -56,6 +56,11 @@ export function formatDuration(ms?: number): string {
   return `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
 }
 
+/** "Cloudflare, Inc. (AS13335)", or just the number when the name is unknown. */
+export function networkLabel(n: { asn: number; name?: string }): string {
+  return n.name ? `${n.name} (AS${n.asn})` : `AS${n.asn}`;
+}
+
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n.toLocaleString()} ${n === 1 ? one : many}`;
 }

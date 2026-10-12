@@ -5,15 +5,22 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { track } from "@/lib/analytics";
 import { createScan, exportUrl, getHosts } from "@/lib/api";
-import { formatDuration, hostStatus, modeLabels, plural, sourceLabel } from "@/lib/format";
-import type { Scan, ScanSummary } from "@/lib/types";
+import {
+  formatDuration,
+  hostStatus,
+  modeLabels,
+  networkLabel,
+  plural,
+  sourceLabel,
+} from "@/lib/format";
+import type { Provider, Scan, ScanSummary } from "@/lib/types";
 import { usePages } from "@/lib/use-pages";
 import { useVerification } from "@/lib/verification";
 import { HostList } from "./host-list";
 import { SiteMap } from "./site-map";
 import { ListFooter, UrlList } from "./url-list";
 
-type Tab = "overview" | "hosts" | "map" | "pages" | "apis" | "assets" | "technologies";
+type Tab = "overview" | "hosts" | "hosting" | "map" | "pages" | "apis" | "assets" | "technologies";
 
 /** What a running scan has found so far, in the shape of a result summary. */
 export function liveSummary(scan: Scan): ScanSummary {
@@ -61,6 +68,7 @@ export function ResultsView({ scan, result, live = false }: Props) {
   };
 
   const { counts, domain } = result;
+  const providers = result.providers ?? [];
   // The Pages tab also lists URLs of unknown type (for example form targets).
   const pages = counts.urls - counts.apis - counts.assets;
 
@@ -71,10 +79,14 @@ export function ResultsView({ scan, result, live = false }: Props) {
     { id: "pages", label: "Pages", count: pages },
     { id: "apis", label: "APIs", count: counts.apis },
     { id: "assets", label: "Assets", count: counts.assets },
-    // Technologies are detected from the whole result, once it is complete.
+    // Technologies and hosting are worked out from the whole result, once
+    // it is complete.
     ...(live
       ? []
-      : [{ id: "technologies" as const, label: "Technologies", count: result.technologies.length }]),
+      : [
+          { id: "hosting" as const, label: "Hosting", count: providers.length },
+          { id: "technologies" as const, label: "Technologies", count: result.technologies.length },
+        ]),
   ];
 
   const showHost = (hostname: string) => {
@@ -233,6 +245,9 @@ export function ResultsView({ scan, result, live = false }: Props) {
             showKind
             empty="No assets were discovered."
           />
+        )}
+        {tab === "hosting" && (
+          <Hosting scanId={scan.id} apex={domain.canonical} providers={providers} />
         )}
         {tab === "technologies" && <Technologies result={result} />}
       </section>
@@ -401,6 +416,70 @@ function OverviewHosts({ scanId, showHost }: Pick<OverviewProps, "scanId" | "sho
         hasMore={hasMore}
         onMore={loadMore}
       />
+    </div>
+  );
+}
+
+interface HostingProps {
+  scanId: string;
+  apex: string;
+  providers: Provider[];
+}
+
+/**
+ * Where the hosts are served from: the networks their addresses belong to,
+ * largest first. Opening one lists its hosts.
+ */
+function Hosting({ scanId, apex, providers }: HostingProps) {
+  const [open, setOpen] = useState<number | null>(null);
+  if (providers.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        No hosting information: none of the hosts resolved to a public address, or this result was
+        saved before hosting was recorded.
+      </p>
+    );
+  }
+  const most = providers[0].hosts;
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">
+        The network each host&apos;s address belongs to. A host behind a CDN or proxy such as
+        Cloudflare shows that service, not the server behind it. The country is where the address
+        block is registered, which is not always where the server is.
+      </p>
+      <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+        {providers.map((p) => {
+          const isOpen = open === p.asn;
+          return (
+            <li key={p.asn}>
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : p.asn)}
+                aria-expanded={isOpen}
+                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm hover:bg-subtle"
+              >
+                <span className="min-w-0">
+                  <span className="break-words font-medium">{networkLabel(p)}</span>
+                  {p.country && <span className="ml-2 text-xs text-muted">{p.country}</span>}
+                </span>
+                <span className="font-mono text-xs text-muted">{plural(p.hosts, "host")}</span>
+                <span aria-hidden className="col-span-2 h-1 overflow-hidden rounded bg-subtle">
+                  <span
+                    className="block h-full bg-accent"
+                    style={{ width: `${Math.max((100 * p.hosts) / most, 2)}%` }}
+                  />
+                </span>
+              </button>
+              {isOpen && (
+                <div className="border-t border-border bg-subtle/60 px-3 py-4">
+                  <HostList scanId={scanId} apex={apex} total={p.hosts} asn={p.asn} />
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
