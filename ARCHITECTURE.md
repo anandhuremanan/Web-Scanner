@@ -282,6 +282,12 @@ Result
   When a result is built, hosts are counted per network into `providers`,
   which the client shows as the Hosting tab; the hosts of one network are
   listed with `GET /hosts?asn=`.
+- **Domain records, certificates and alias notes** ride along with existing
+  steps: the DNS engine reads the target domain's MX, NS and TXT records
+  ([dnsresolve/records.go](server/internal/discovery/dnsresolve/records.go))
+  and notices aliases whose target does not exist; the probe keeps the
+  certificate from its TLS handshake. The result summary carries the
+  records (`dns`) and the alias list (`danglingAliases`).
 - **Technologies** are detected from simple, visible evidence (URL path
   fragments like `/_next/`, `Server`/`X-Powered-By` headers, `<meta
   name="generator">`).

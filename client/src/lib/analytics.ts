@@ -41,6 +41,8 @@ export interface Events {
   result_tab_opened: { tab: string; live: boolean };
   /** The CSV of a result was downloaded. */
   urls_exported: { urls: number };
+  /** A result's link was copied, or the result was printed. */
+  result_shared: { how: "link" | "print" };
 }
 
 let enabled = false;

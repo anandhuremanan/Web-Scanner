@@ -121,7 +121,7 @@ func (e *Engine) cachedProbe(ctx context.Context, t discovery.Target, host strin
 			return cache.Loaded[discovery.HTTPInfo]{}, errNotCacheable
 		}
 		return cache.Loaded[discovery.HTTPInfo]{Value: *v, TTL: e.opts.TTL, Group: t.Domain,
-			Cost: 160 + cache.StringCost(v.URL, v.Redirect, v.FinalURL, v.Title, v.Server, v.ContentType, v.Error)}, nil
+			Cost: 288 + cache.StringCost(v.URL, v.Redirect, v.FinalURL, v.Title, v.Server, v.ContentType, v.Error)}, nil
 	})
 	if err != nil {
 		return scanSpecific
@@ -159,6 +159,16 @@ func (e *Engine) probe(ctx context.Context, t discovery.Target, host string) *di
 			Status:      resp.StatusCode,
 			Server:      strings.TrimSpace(resp.Header.Get("Server")),
 			ContentType: resp.ContentType,
+		}
+		if c := resp.Certificate; c != nil {
+			issuer := c.Issuer.CommonName
+			if len(c.Issuer.Organization) > 0 {
+				issuer = c.Issuer.Organization[0]
+			}
+			info.Certificate = &discovery.Certificate{
+				Issuer: issuer, Subject: c.Subject.CommonName,
+				NotBefore: c.NotBefore.UTC(), NotAfter: c.NotAfter.UTC(),
+			}
 		}
 		if resp.IsRedirect() {
 			info.Redirect = resp.Location

@@ -141,7 +141,10 @@ func (c *Client) query(ctx context.Context, host string, qtype uint16) ([]netip.
 			addrs, cname := parseAnswer(resp, qtype)
 			return addrs, cname, nil
 		case dns.RcodeNameError:
-			return nil, "", &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+			// If the name is an alias, the answer still lists the chain:
+			// the alias exists and its target does not.
+			_, cname := parseAnswer(resp, qtype)
+			return nil, cname, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
 		default:
 			// SERVFAIL, REFUSED...: this server could not answer; another may.
 			lastErr = &net.DNSError{Err: "server failure (" + dns.RcodeToString[resp.Rcode] + ")", Name: host, IsTemporary: true}

@@ -186,3 +186,51 @@ describe("Hosting tab", () => {
     expect(tab(/^Hosting/)).toBeNull();
   });
 });
+
+describe("DNS tab, alias note and sharing", () => {
+  const full: ScanSummary = {
+    ...finished,
+    dns: {
+      mx: [{ host: "aspmx.l.google.com", priority: 1 }],
+      ns: ["bob.ns.cloudflare.com"],
+      txt: ["v=spf1 include:_spf.google.com ~all"],
+      services: [{ name: "Google Workspace (mail)", evidence: "MX aspmx.l.google.com" }],
+    },
+    danglingAliases: ["shop.example.com"],
+  };
+
+  it("shows the domain's records and the services they reveal", () => {
+    render(<ResultsView scan={scan("completed")} result={full} />);
+    fireEvent.click(tab(/^DNS/)!);
+    expect(screen.getByText("Google Workspace (mail)")).toBeTruthy();
+    expect(screen.getByText(/^1\s+aspmx\.l\.google\.com$/)).toBeTruthy();
+    expect(screen.getByText("bob.ns.cloudflare.com")).toBeTruthy();
+    expect(screen.getByText("v=spf1 include:_spf.google.com ~all")).toBeTruthy();
+  });
+
+  it("says so when no records were read", () => {
+    render(<ResultsView scan={scan("completed")} result={finished} />);
+    fireEvent.click(tab(/^DNS/)!);
+    expect(screen.getByText(/No DNS records were read for example.com/)).toBeTruthy();
+  });
+
+  it("lists aliases to missing names in the overview and opens the host", async () => {
+    render(<ResultsView scan={scan("completed")} result={full} />);
+    expect(screen.getByRole("heading", { name: "Aliases to names that do not exist" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "shop.example.com" }));
+    // It lands on the Hosts tab, searching for that host.
+    await waitFor(() => expect(tab(/^Hosts/)?.getAttribute("aria-current")).toBe("page"));
+    expect((screen.getByRole("searchbox", { name: "Search hosts" }) as HTMLInputElement).value).toBe(
+      "shop.example.com",
+    );
+  });
+
+  it("copies the result's link", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<ResultsView scan={scan("completed")} result={finished} />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    await screen.findByRole("button", { name: "Link copied" });
+    expect(writeText).toHaveBeenCalledWith(window.location.href);
+  });
+});

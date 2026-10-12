@@ -852,6 +852,21 @@ URL fields:
   where the block is registered, not necessarily where the server is.
   Answers are remembered per address; a lookup that fails is left out.
   `SCAN_NETWORK_INFO=false` turns it off.
+- **The domain's own records.** Once per scan the mail servers (MX), name
+  servers (NS) and text records (TXT) of the target domain are read: three
+  DNS questions. They are returned as `dns` in the result summary, with the
+  services they reveal (mail provider, DNS provider, verifications), each
+  with the record as evidence. At most 40 TXT records of 600 characters are
+  kept.
+- **Aliases to names that do not exist.** When a host is an alias (CNAME)
+  and the name it points to does not exist, the host is marked
+  `dns.danglingAlias` with the target in `dns.cname`, and listed in the
+  summary as `danglingAliases`. This is a fact from the DNS answer; whether
+  the missing name could be registered by someone else is not checked, and
+  the scanner makes no request to find out.
+- **Certificates.** In standard and full modes the certificate a host
+  presents during the probe is recorded as `http.certificate` (issuer, name,
+  validity dates). It comes from the connection the probe makes anyway.
 - **DNS** is asked directly (`SCAN_DNS_SERVERS`, by default Cloudflare's and
   Google's public resolvers) rather than through the operating system: one
   question per host instead of three or more. Google documents 1,500

@@ -11,6 +11,7 @@ package fetch
 import (
 	"compress/gzip"
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -87,6 +88,8 @@ type Response struct {
 	// Body holds up to MaxBodyBytes of textual responses. Binary bodies are not read.
 	Body      []byte
 	Truncated bool
+	// Certificate is the certificate the server presented, for HTTPS.
+	Certificate *x509.Certificate
 }
 
 // IsRedirect reports whether the response is a redirect with a target.
@@ -198,6 +201,9 @@ func (c *Client) Get(ctx context.Context, rawURL string) (*Response, error) {
 		StatusCode:  resp.StatusCode,
 		Header:      resp.Header,
 		ContentType: mediaType(resp.Header.Get("Content-Type")),
+	}
+	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		out.Certificate = resp.TLS.PeerCertificates[0]
 	}
 	if loc := resp.Header.Get("Location"); loc != "" && resp.StatusCode >= 300 && resp.StatusCode < 400 {
 		if ref, err := u.Parse(loc); err == nil {

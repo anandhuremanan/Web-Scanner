@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hostStatus } from "./format";
+import { daysUntil, hostStatus } from "./format";
 import type { Host } from "./types";
 
 function host(partial: Partial<Host>): Host {
@@ -57,5 +57,24 @@ describe("hostStatus", () => {
     expect(hostStatus(host({ dns: { resolved: false, skipped: "host limit reached" } })).detail).toContain(
       "host limit reached",
     );
+  });
+});
+
+describe("hosts whose alias points nowhere", () => {
+  it("are marked, with where the alias points", () => {
+    const st = hostStatus(
+      host({ dns: { resolved: false, cname: "old-shop.herokuapp.com", danglingAlias: true } }),
+    );
+    expect(st.label).toBe("alias to missing name");
+    expect(st.detail).toContain("old-shop.herokuapp.com");
+  });
+});
+
+describe("daysUntil", () => {
+  const now = Date.parse("2026-10-12T12:00:00Z");
+  it("counts whole days left, and goes negative after the date", () => {
+    expect(daysUntil("2026-10-22T12:00:00Z", now)).toBe(10);
+    expect(daysUntil("2026-10-12T18:00:00Z", now)).toBe(0);
+    expect(daysUntil("2026-10-10T12:00:00Z", now)).toBe(-2);
   });
 });

@@ -275,6 +275,9 @@ func pipeline(cfg config.ScanConfig, pools sharedPools, caches sharedCaches, log
 		// Which network each address belongs to, asked over DNS.
 		dnsOptions.Networks = dnsresolve.NewNetworks(net.DefaultResolver)
 	}
+	// The domain's own records (mail, name servers, text): three questions
+	// per scan.
+	dnsOptions.Records = net.DefaultResolver
 	dns := dnsresolve.New(net.DefaultResolver, dnsOptions)
 	if len(cfg.DNSServers) > 0 {
 		dns = dnsresolve.NewWith(&dnsresolve.Client{
