@@ -62,6 +62,9 @@ type Options struct {
 	// Networks, when set, adds to each resolved host which network its
 	// addresses belong to. It is informative: a failure leaves it out.
 	Networks *Networks
+	// Records, when set, reads the target domain's own records (mail
+	// servers, name servers, text records) once per scan.
+	Records RecordResolver
 }
 
 // Engine resolves hosts that have not been resolved yet.
@@ -133,8 +136,13 @@ func (e *Engine) resolve(ctx context.Context, host, domain string) *discovery.DN
 		if v == nil {
 			return cache.Loaded[discovery.DNSInfo]{}, errStopped
 		}
-		l := cache.Loaded[discovery.DNSInfo]{Value: *v, Group: domain,
-			Cost: 96 + cache.StringCost(host, v.CNAME, v.Error) + cache.StringCost(v.Addresses...) + int64(96*len(v.Networks))}
+		cost := 96 + cache.StringCost(host, v.CNAME, v.Error) + cache.StringCost(v.Addresses...) + int64(96*len(v.Networks))
+		if host == domain && e.opts.Records != nil {
+			if v.Records = domainRecords(ctx, e.opts.Records, domain); v.Records != nil {
+				cost += 256 + cache.StringCost(v.Records.TXT...) + cache.StringCost(v.Records.NS...) + int64(96*(len(v.Records.MX)+len(v.Records.Services)))
+			}
+		}
+		l := cache.Loaded[discovery.DNSInfo]{Value: *v, Group: domain, Cost: cost}
 		switch {
 		case v.Resolved:
 			l.TTL = e.opts.TTL
@@ -174,7 +182,13 @@ func (e *Engine) lookup(ctx context.Context, host string) (info *discovery.DNSIn
 		}
 		var dnsErr *net.DNSError
 		notFound := errors.As(err, &dnsErr) && dnsErr.IsNotFound
-		return &discovery.DNSInfo{Resolved: false, Error: describe(err)}, notFound
+		info := &discovery.DNSInfo{Resolved: false, Error: describe(err)}
+		// The name exists as an alias, but what it points to does not.
+		if cname = strings.TrimSuffix(strings.ToLower(cname), "."); notFound && cname != "" && cname != host {
+			info.CNAME, info.DanglingAlias = cname, true
+			info.Error = "its alias target does not exist"
+		}
+		return info, notFound
 	}
 	if len(addrs) == 0 {
 		return &discovery.DNSInfo{Resolved: false, Error: "no A or AAAA records"}, true

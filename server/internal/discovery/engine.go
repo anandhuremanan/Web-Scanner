@@ -146,12 +146,55 @@ type DNSInfo struct {
 	// Networks are the networks the addresses belong to (usually one): who
 	// operates the place the host is served from.
 	Networks []Network `json:"networks,omitempty"`
-	Error    string    `json:"error,omitempty"`
+	// DanglingAlias is true when the name is an alias (CNAME) for a name
+	// that does not exist. If the target is an address at an outside
+	// service that anyone can register, someone else could claim it and
+	// serve content under this name; whether that applies is not checked.
+	DanglingAlias bool `json:"danglingAlias,omitempty"`
+	// Records are the domain's own DNS records; set on the target domain's
+	// host only.
+	Records *DomainRecords `json:"records,omitempty"`
+	Error   string         `json:"error,omitempty"`
 	// Skipped explains why resolution was not attempted.
 	Skipped string `json:"skipped,omitempty"`
 	// CachedAt is set when the answer came from the DNS cache; it is when
 	// the lookup was made.
 	CachedAt *time.Time `json:"cachedAt,omitempty"`
+}
+
+// DomainRecords are the public DNS records that describe a domain as a
+// whole, and what they reveal.
+type DomainRecords struct {
+	// MX are the servers that receive the domain's mail, preferred first.
+	MX []MXRecord `json:"mx,omitempty"`
+	// NS are the domain's name servers.
+	NS []string `json:"ns,omitempty"`
+	// TXT are the domain's text records (mail policy, verifications, ...).
+	TXT []string `json:"txt,omitempty"`
+	// Services are the services the records show the domain uses.
+	Services []Service `json:"services,omitempty"`
+}
+
+// MXRecord is a mail server of a domain.
+type MXRecord struct {
+	Host     string `json:"host"`
+	Priority int    `json:"priority"`
+}
+
+// Service is a service a domain uses, with the record that shows it.
+type Service struct {
+	Name     string `json:"name"`
+	Evidence string `json:"evidence"`
+}
+
+// Certificate describes the TLS certificate a host presented.
+type Certificate struct {
+	// Issuer is who issued it, such as "Let's Encrypt".
+	Issuer string `json:"issuer,omitempty"`
+	// Subject is the name it was issued for (may be a wildcard).
+	Subject   string    `json:"subject,omitempty"`
+	NotBefore time.Time `json:"notBefore"`
+	NotAfter  time.Time `json:"notAfter"`
 }
 
 // Network is a network on the internet (an "autonomous system") that a
@@ -184,7 +227,9 @@ type HTTPInfo struct {
 	Title       string `json:"title,omitempty"`
 	Server      string `json:"server,omitempty"`
 	ContentType string `json:"contentType,omitempty"`
-	Error       string `json:"error,omitempty"`
+	// Certificate is the certificate the host presented over HTTPS.
+	Certificate *Certificate `json:"certificate,omitempty"`
+	Error       string       `json:"error,omitempty"`
 	// Skipped explains why the host was not probed.
 	Skipped string `json:"skipped,omitempty"`
 	// CachedAt is set when the result came from the probe cache; it is when

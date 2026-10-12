@@ -168,12 +168,34 @@ export interface Provider {
   hosts: number;
 }
 
+/** The DNS records that describe a domain as a whole. */
+export interface DomainRecords {
+  /** Servers that receive the domain's mail, preferred first. */
+  mx?: { host: string; priority: number }[];
+  /** The domain's name servers. */
+  ns?: string[];
+  txt?: string[];
+  /** Services the records show the domain uses, each with the record. */
+  services?: { name: string; evidence: string }[];
+}
+
+/** The TLS certificate a host presented. */
+export interface Certificate {
+  issuer?: string;
+  /** The name it was issued for; may be a wildcard. */
+  subject?: string;
+  notBefore: string;
+  notAfter: string;
+}
+
 export interface DnsInfo {
   resolved: boolean;
   addresses?: string[];
   cname?: string;
   nonPublic?: boolean;
   networks?: Network[];
+  /** The name is an alias (CNAME) for a name that does not exist. */
+  danglingAlias?: boolean;
   error?: string;
   skipped?: string;
   /** Set when the answer was reused from the cache (time of the lookup). */
@@ -191,6 +213,7 @@ export interface HttpInfo {
   title?: string;
   server?: string;
   contentType?: string;
+  certificate?: Certificate;
   error?: string;
   skipped?: string;
   /** Set when the probe result was reused from the cache. */
@@ -284,6 +307,10 @@ export interface ScanSummary {
   technologies: Technology[];
   /** Where the hosts are served from; missing in results saved before this existed. */
   providers?: Provider[];
+  /** The domain's own DNS records, if they could be read. */
+  dns?: DomainRecords;
+  /** Hosts that are aliases for names that do not exist. */
+  danglingAliases?: string[];
 }
 
 /** One page of a listing; `next` is passed back to get the page after it. */

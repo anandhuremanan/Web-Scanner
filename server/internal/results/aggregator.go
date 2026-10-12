@@ -398,8 +398,23 @@ func (a *Aggregator) Result() Result {
 	sort.Slice(res.Hosts, func(i, j int) bool { return hostLess(res.Hosts[i], res.Hosts[j], apex) })
 	res.Technologies = tech.list()
 	res.Providers = providers(res.Hosts)
+	for _, h := range res.Hosts {
+		if h.DNS == nil {
+			continue
+		}
+		if h.Hostname == apex && h.DNS.Records != nil {
+			res.DNS = h.DNS.Records
+		}
+		if h.DNS.DanglingAlias && len(res.DanglingAliases) < maxDangling {
+			res.DanglingAliases = append(res.DanglingAliases, h.Hostname)
+		}
+	}
 	return res
 }
+
+// maxDangling bounds the dangling aliases listed in a result's summary;
+// every such host still says so in its own details.
+const maxDangling = 200
 
 // providers counts the hosts served from each network, largest first.
 func providers(hosts []Host) []Provider {

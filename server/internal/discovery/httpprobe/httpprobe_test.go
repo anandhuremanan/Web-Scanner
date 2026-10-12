@@ -2,6 +2,8 @@ package httpprobe
 
 import (
 	"context"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -153,5 +155,27 @@ func TestProbeRealServer(t *testing.T) {
 	info = e.probe(context.Background(), discovery.Target{Domain: "127.0.0.1"}, host)
 	if info.Reachable || info.Error != "resolves to a non-public address" {
 		t.Errorf("blocked info = %+v", info)
+	}
+}
+
+// The certificate a host presents is recorded with the probe.
+func TestProbeRecordsTheCertificate(t *testing.T) {
+	notAfter := time.Date(2027, 1, 15, 0, 0, 0, 0, time.UTC)
+	cert := &x509.Certificate{
+		Subject:   pkix.Name{CommonName: "*.example.com"},
+		Issuer:    pkix.Name{CommonName: "R11", Organization: []string{"Example Trust Services"}},
+		NotBefore: notAfter.AddDate(0, -3, 0), NotAfter: notAfter,
+	}
+	f := &fakeHosts{responses: map[string]*fetch.Response{
+		"https://example.com/":      {StatusCode: 200, ContentType: "text/html", Certificate: cert},
+		"http://plain.example.com/": {StatusCode: 200, ContentType: "text/html"},
+	}}
+	got := run(t, f, Options{MaxHosts: 10, Concurrency: 1}, resolved("example.com"), resolved("plain.example.com"))
+	c := got["example.com"].Certificate
+	if c == nil || c.Issuer != "Example Trust Services" || c.Subject != "*.example.com" || !c.NotAfter.Equal(notAfter) {
+		t.Errorf("certificate = %+v", c)
+	}
+	if got["plain.example.com"].Certificate != nil {
+		t.Error("a host answering over plain HTTP has no certificate")
 	}
 }

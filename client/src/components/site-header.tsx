@@ -12,7 +12,7 @@ export function SiteHeader() {
     return null;
   }
   return (
-    <header className="border-b border-border">
+    <header className="print:hidden border-b border-border">
       <div className="mx-auto flex h-12 max-w-5xl items-center px-4">
         <Link href="/" className="text-sm font-semibold tracking-tight">
           Web Scanner

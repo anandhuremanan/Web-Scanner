@@ -19,6 +19,11 @@ type Result struct {
 	// Providers are the networks the result's hosts are served from, with
 	// how many hosts each has; largest first.
 	Providers []Provider `json:"providers"`
+	// DNS are the target domain's own DNS records, if they were read.
+	DNS *discovery.DomainRecords `json:"dns,omitempty"`
+	// DanglingAliases are hosts that are aliases for names that do not
+	// exist (see discovery.DNSInfo.DanglingAlias); at most maxDangling.
+	DanglingAliases []string `json:"danglingAliases,omitempty"`
 	// HostsOmitted counts hostnames discovered after the scan's host limit
 	// was reached; they were not recorded.
 	HostsOmitted int `json:"hostsOmitted,omitempty"`

@@ -426,3 +426,24 @@ func TestAggregatorCacheProvenance(t *testing.T) {
 		t.Errorf("result counts %+v != live %+v", rc, c)
 	}
 }
+
+// The summary carries the domain's records and the hosts whose alias
+// points to a name that does not exist.
+func TestResultSummarizesRecordsAndDanglingAliases(t *testing.T) {
+	a := newAgg(t)
+	rec := &discovery.DomainRecords{NS: []string{"ns1.example.net"}}
+	a.Add(discovery.Finding{Host: "example.com", Source: discovery.SourceTarget})
+	a.Add(discovery.Finding{Host: "example.com", DNS: &discovery.DNSInfo{Resolved: true, Records: rec}})
+	a.Add(discovery.Finding{Host: "shop.example.com", Source: discovery.SourceCT})
+	a.Add(discovery.Finding{Host: "shop.example.com", DNS: &discovery.DNSInfo{CNAME: "old.herokuapp.com", DanglingAlias: true}})
+	a.Add(discovery.Finding{Host: "gone.example.com", Source: discovery.SourceCT})
+	a.Add(discovery.Finding{Host: "gone.example.com", DNS: &discovery.DNSInfo{Error: "no such host"}})
+
+	res := a.Result()
+	if res.DNS != rec {
+		t.Errorf("DNS = %+v", res.DNS)
+	}
+	if !reflect.DeepEqual(res.DanglingAliases, []string{"shop.example.com"}) {
+		t.Errorf("dangling aliases = %v", res.DanglingAliases)
+	}
+}

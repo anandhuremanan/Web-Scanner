@@ -29,6 +29,13 @@ The token it produces is sent with the request to start a scan; the server
 must be given the matching secret key (`TURNSTILE_SECRET_KEY`), or the token
 is ignored.
 
+## Sharing a result
+
+A result page's address is its share link: anyone with it can open the
+result for as long as the server keeps it. "Copy link" copies it and
+"Print / PDF" prints the open tab (the header, footer and buttons are left
+out of the print).
+
 ## Analytics
 
 Usage analytics are optional and off by default. Setting

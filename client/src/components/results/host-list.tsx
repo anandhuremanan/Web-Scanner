@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { FoundThrough, SourceTags } from "@/components/source-list";
 import { getHosts } from "@/lib/api";
-import { hostStatus, networkLabel, plural, statusTone } from "@/lib/format";
-import type { Host, UrlType } from "@/lib/types";
+import { daysUntil, hostStatus, networkLabel, plural, statusTone } from "@/lib/format";
+import type { Certificate, Host, UrlType } from "@/lib/types";
 import { useDebounced, usePages } from "@/lib/use-pages";
 import { ListFooter, UrlList } from "./url-list";
 
@@ -172,6 +172,18 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
                 <span className="block text-warn">Private or reserved addresses; not contacted.</span>
               )}
             </span>
+          ) : dns.danglingAlias ? (
+            <span className="space-y-0.5">
+              <span className="block">
+                An alias (CNAME) for <span className="break-all font-mono">{dns.cname}</span>, which
+                does not exist.
+              </span>
+              <span className="block text-muted">
+                If that address is at an outside service where anyone can register it, someone else
+                could claim it and publish under this name. Remove the alias if it is no longer
+                needed. Whether it can be claimed was not checked.
+              </span>
+            </span>
           ) : (
             <span className="text-muted">Does not resolve ({dns.error ?? "no records"})</span>
           )}
@@ -222,6 +234,8 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
             </span>
           )}
         </Row>
+
+        {http?.certificate && <CertificateRow cert={http.certificate} />}
 
         {sitemap && (
           <Row label="Sitemaps">
@@ -293,6 +307,30 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
         </div>
       )}
     </div>
+  );
+}
+
+function CertificateRow({ cert }: { cert: Certificate }) {
+  const days = daysUntil(cert.notAfter);
+  const until = new Date(cert.notAfter).toLocaleDateString();
+  return (
+    <Row label="Certificate">
+      <span className="block">
+        {cert.issuer ? `Issued by ${cert.issuer}` : "Issuer unknown"}
+        {cert.subject && (
+          <span className="text-muted">
+            {" "}
+            for <span className="font-mono">{cert.subject}</span>
+          </span>
+        )}
+      </span>
+      <span className={`block ${days < 14 ? "text-warn" : "text-muted"}`}>
+        {days < 0
+          ? `Expired on ${until}`
+          : `Valid until ${until} (${plural(days, "day")} left)`}
+        {" · "}issued {new Date(cert.notBefore).toLocaleDateString()}
+      </span>
+    </Row>
   );
 }
 

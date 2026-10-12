@@ -56,6 +56,11 @@ export function formatDuration(ms?: number): string {
   return `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
 }
 
+/** Whole days from now until a date; negative once it has passed. */
+export function daysUntil(date: string, now = Date.now()): number {
+  return Math.floor((new Date(date).getTime() - now) / 86_400_000);
+}
+
 /** "Cloudflare, Inc. (AS13335)", or just the number when the name is unknown. */
 export function networkLabel(n: { asn: number; name?: string }): string {
   return n.name ? `${n.name} (AS${n.asn})` : `AS${n.asn}`;
@@ -118,6 +123,14 @@ export function hostStatus(h: Host): HostStatus {
       tone: "text-warn",
       label: "no HTTP response",
       detail: `Resolves, but did not answer HTTP or HTTPS${http?.error ? ` (${http.error})` : ""}.`,
+    };
+  }
+  if (dns?.danglingAlias) {
+    return {
+      icon: "!",
+      tone: "text-warn",
+      label: "alias to missing name",
+      detail: `An alias for ${dns.cname}, which does not exist.`,
     };
   }
   if (dns && !dns.resolved && !dns.skipped) {

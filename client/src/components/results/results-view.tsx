@@ -13,14 +13,14 @@ import {
   plural,
   sourceLabel,
 } from "@/lib/format";
-import type { Provider, Scan, ScanSummary } from "@/lib/types";
+import type { DomainRecords, Provider, Scan, ScanSummary } from "@/lib/types";
 import { usePages } from "@/lib/use-pages";
 import { useVerification } from "@/lib/verification";
 import { HostList } from "./host-list";
 import { SiteMap } from "./site-map";
 import { ListFooter, UrlList } from "./url-list";
 
-type Tab = "overview" | "hosts" | "hosting" | "map" | "pages" | "apis" | "assets" | "technologies";
+type Tab = "overview" | "hosts" | "hosting" | "dns" | "map" | "pages" | "apis" | "assets" | "technologies";
 
 /** What a running scan has found so far, in the shape of a result summary. */
 export function liveSummary(scan: Scan): ScanSummary {
@@ -85,6 +85,7 @@ export function ResultsView({ scan, result, live = false }: Props) {
       ? []
       : [
           { id: "hosting" as const, label: "Hosting", count: providers.length },
+          { id: "dns" as const, label: "DNS" },
           { id: "technologies" as const, label: "Technologies", count: result.technologies.length },
         ]),
   ];
@@ -127,8 +128,9 @@ export function ResultsView({ scan, result, live = false }: Props) {
                   Download URLs (CSV)
                 </a>
               )}
+              <ShareButtons />
               <ScanAgain scan={scan} />
-              <Link href="/" className="text-accent hover:underline">
+              <Link href="/" className="text-accent hover:underline print:hidden">
                 New scan
               </Link>
             </span>
@@ -172,7 +174,7 @@ export function ResultsView({ scan, result, live = false }: Props) {
         </div>
       )}
 
-      <nav className="-mx-4 overflow-x-auto px-4" aria-label="Result sections">
+      <nav className="-mx-4 overflow-x-auto px-4 print:hidden" aria-label="Result sections">
         <div className="flex gap-1 border-b border-border">
           {tabs.map((t) => (
             <button
@@ -249,6 +251,7 @@ export function ResultsView({ scan, result, live = false }: Props) {
         {tab === "hosting" && (
           <Hosting scanId={scan.id} apex={domain.canonical} providers={providers} />
         )}
+        {tab === "dns" && <DnsRecords records={result.dns} domain={domain.canonical} />}
         {tab === "technologies" && <Technologies result={result} />}
       </section>
     </div>
@@ -347,6 +350,30 @@ function Overview({ scanId, result, live, goTo, showHost }: OverviewProps) {
           inventory of DNS records or server-side routes.
         </p>
 
+        {result.danglingAliases && result.danglingAliases.length > 0 && (
+          <div className="text-sm">
+            <h2 className="mb-2 font-medium">Aliases to names that do not exist</h2>
+            <p className="mb-2 text-muted">
+              These hosts are aliases (CNAME) for a name that no longer exists. If the missing name is
+              at an outside service where anyone can register it, someone else could claim it. This
+              was not checked; open a host to see where it points.
+            </p>
+            <ul className="space-y-1">
+              {result.danglingAliases.map((h) => (
+                <li key={h}>
+                  <button
+                    type="button"
+                    onClick={() => showHost(h)}
+                    className="break-all font-mono text-accent hover:underline"
+                  >
+                    {h}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {result.errors.length > 0 && (
           <div className="text-sm">
             <h2 className="mb-2 font-medium">Problems during the scan</h2>
@@ -417,6 +444,121 @@ function OverviewHosts({ scanId, showHost }: Pick<OverviewProps, "scanId" | "sho
         onMore={loadMore}
       />
     </div>
+  );
+}
+
+/** Copies the result's link, or prints the page (which can save a PDF). */
+function ShareButtons() {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      track("result_shared", { how: "link" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // No clipboard access (an old browser, or not a secure page): the
+      // address bar still has the link.
+      window.prompt("Copy this link:", window.location.href);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={copy}
+        title="Anyone with the link can open this result while it is stored (about a week)"
+        className="text-accent hover:underline print:hidden"
+      >
+        {copied ? "Link copied" : "Copy link"}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          track("result_shared", { how: "print" });
+          window.print();
+        }}
+        title="Prints what is shown on this tab; choose 'Save as PDF' to keep a file"
+        className="text-accent hover:underline print:hidden"
+      >
+        Print / PDF
+      </button>
+    </>
+  );
+}
+
+/** The domain's own DNS records and what they reveal. */
+function DnsRecords({ records, domain }: { records?: DomainRecords; domain: string }) {
+  if (!records) {
+    return (
+      <p className="text-sm text-muted">
+        No DNS records were read for {domain}: the lookups failed, or this result was saved before
+        records were collected.
+      </p>
+    );
+  }
+  const { mx = [], ns = [], txt = [], services = [] } = records;
+  return (
+    <div className="space-y-6 text-sm">
+      <p className="text-muted">
+        The public DNS records of <span className="font-mono">{domain}</span> itself. Each
+        host&apos;s own addresses are under Hosts.
+      </p>
+
+      {services.length > 0 && (
+        <RecordSection title="Services these records reveal">
+          <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+            {services.map((s) => (
+              <li key={s.name} className="px-3 py-2">
+                <div className="font-medium">{s.name}</div>
+                <div className="break-all font-mono text-xs text-muted">{s.evidence}</div>
+              </li>
+            ))}
+          </ul>
+        </RecordSection>
+      )}
+
+      <RecordSection title="Mail servers (MX)" empty={mx.length === 0 && "None: no mail servers are published."}>
+        <RecordList items={mx.map((m) => `${m.priority}  ${m.host}`)} />
+      </RecordSection>
+      <RecordSection title="Name servers (NS)" empty={ns.length === 0 && "None were returned."}>
+        <RecordList items={ns} />
+      </RecordSection>
+      <RecordSection title="Text records (TXT)" empty={txt.length === 0 && "None."}>
+        <RecordList items={txt} />
+      </RecordSection>
+    </div>
+  );
+}
+
+function RecordSection({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty?: string | false;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h2 className="mb-2 font-medium">{title}</h2>
+      {empty ? <p className="text-muted">{empty}</p> : children}
+    </div>
+  );
+}
+
+function RecordList({ items }: { items: string[] }) {
+  return (
+    <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+      {items.map((item) => (
+        <li key={item} className="whitespace-pre-wrap break-all px-3 py-1.5 font-mono text-xs">
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }
 
