@@ -397,7 +397,40 @@ func (a *Aggregator) Result() Result {
 	apex := a.target.Domain
 	sort.Slice(res.Hosts, func(i, j int) bool { return hostLess(res.Hosts[i], res.Hosts[j], apex) })
 	res.Technologies = tech.list()
+	res.Providers = providers(res.Hosts)
 	return res
+}
+
+// providers counts the hosts served from each network, largest first.
+func providers(hosts []Host) []Provider {
+	byASN := map[int]*Provider{}
+	for _, h := range hosts {
+		if h.DNS == nil {
+			continue
+		}
+		for _, n := range h.DNS.Networks {
+			p := byASN[n.ASN]
+			if p == nil {
+				p = &Provider{ASN: n.ASN, Name: n.Name, Country: n.Country}
+				byASN[n.ASN] = p
+			}
+			if p.Name == "" {
+				p.Name = n.Name
+			}
+			p.Hosts++
+		}
+	}
+	out := make([]Provider, 0, len(byASN))
+	for _, p := range byASN {
+		out = append(out, *p)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Hosts != out[j].Hosts {
+			return out[i].Hosts > out[j].Hosts
+		}
+		return out[i].ASN < out[j].ASN
+	})
+	return out
 }
 
 func hostState(h *hostEntry) HostState {

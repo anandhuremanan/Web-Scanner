@@ -59,6 +59,9 @@ type Options struct {
 	// NegativeTTL is how long "no such host" / "no records" is reused.
 	// Other failures (timeouts, server errors) are never cached.
 	NegativeTTL time.Duration
+	// Networks, when set, adds to each resolved host which network its
+	// addresses belong to. It is informative: a failure leaves it out.
+	Networks *Networks
 }
 
 // Engine resolves hosts that have not been resolved yet.
@@ -131,7 +134,7 @@ func (e *Engine) resolve(ctx context.Context, host, domain string) *discovery.DN
 			return cache.Loaded[discovery.DNSInfo]{}, errStopped
 		}
 		l := cache.Loaded[discovery.DNSInfo]{Value: *v, Group: domain,
-			Cost: 96 + cache.StringCost(host, v.CNAME, v.Error) + cache.StringCost(v.Addresses...)}
+			Cost: 96 + cache.StringCost(host, v.CNAME, v.Error) + cache.StringCost(v.Addresses...) + int64(96*len(v.Networks))}
 		switch {
 		case v.Resolved:
 			l.TTL = e.opts.TTL
@@ -190,6 +193,7 @@ func (e *Engine) lookup(ctx context.Context, host string) (info *discovery.DNSIn
 		}
 	}
 	sort.Strings(info.Addresses)
+	e.addNetworks(parent, info)
 
 	// The alias is informative only.
 	cname = strings.TrimSuffix(strings.ToLower(cname), ".")
@@ -197,6 +201,31 @@ func (e *Engine) lookup(ctx context.Context, host string) (info *discovery.DNSIn
 		info.CNAME = cname
 	}
 	return info, true
+}
+
+// maxNetworkAddresses bounds the addresses of one host whose network is
+// looked up; a host's addresses are nearly always in the same network.
+const maxNetworkAddresses = 4
+
+// addNetworks records the networks of a host's public addresses.
+func (e *Engine) addNetworks(ctx context.Context, info *discovery.DNSInfo) {
+	if e.opts.Networks == nil {
+		return
+	}
+	seen := map[int]bool{}
+	for i, s := range info.Addresses {
+		if i >= maxNetworkAddresses {
+			break
+		}
+		ip, err := netip.ParseAddr(s)
+		if err != nil || !fetch.IsPublicAddr(ip) {
+			continue
+		}
+		if nw, ok := e.opts.Networks.Lookup(ctx, ip); ok && !seen[nw.ASN] {
+			seen[nw.ASN] = true
+			info.Networks = append(info.Networks, nw)
+		}
+	}
 }
 
 func describe(err error) string {

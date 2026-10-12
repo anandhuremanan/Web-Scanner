@@ -142,13 +142,31 @@ type DNSInfo struct {
 	CNAME     string   `json:"cname,omitempty"`
 	// NonPublic is true when every address is private, loopback or otherwise
 	// non-public. Such hosts are never contacted.
-	NonPublic bool   `json:"nonPublic,omitempty"`
-	Error     string `json:"error,omitempty"`
+	NonPublic bool `json:"nonPublic,omitempty"`
+	// Networks are the networks the addresses belong to (usually one): who
+	// operates the place the host is served from.
+	Networks []Network `json:"networks,omitempty"`
+	Error    string    `json:"error,omitempty"`
 	// Skipped explains why resolution was not attempted.
 	Skipped string `json:"skipped,omitempty"`
 	// CachedAt is set when the answer came from the DNS cache; it is when
 	// the lookup was made.
 	CachedAt *time.Time `json:"cachedAt,omitempty"`
+}
+
+// Network is a network on the internet (an "autonomous system") that a
+// host's address belongs to. It says who operates the addresses, which for
+// a host behind a CDN or proxy is that service, not the server behind it.
+type Network struct {
+	// ASN is the network's number, such as 13335.
+	ASN int `json:"asn"`
+	// Name is the operator, such as "Cloudflare, Inc.".
+	Name string `json:"name,omitempty"`
+	// Country is where the address block is registered (two letters). It
+	// is not necessarily where the server is.
+	Country string `json:"country,omitempty"`
+	// Prefix is the announced address block, such as "104.16.0.0/13".
+	Prefix string `json:"prefix,omitempty"`
 }
 
 // HTTPInfo is the result of probing a host's root URL. Values are immutable

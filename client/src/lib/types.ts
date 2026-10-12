@@ -147,11 +147,33 @@ export interface Scan {
 
 export type HostState = "discovered" | "resolved" | "reachable";
 
+/**
+ * A network an address belongs to: who operates the place a host is served
+ * from. For a host behind a CDN or proxy, that is the CDN.
+ */
+export interface Network {
+  /** The network's number (ASN), such as 13335. */
+  asn: number;
+  name?: string;
+  /** Where the address block is registered; not always where the server is. */
+  country?: string;
+  prefix?: string;
+}
+
+/** A network that hosts in a result resolve to, with how many do. */
+export interface Provider {
+  asn: number;
+  name?: string;
+  country?: string;
+  hosts: number;
+}
+
 export interface DnsInfo {
   resolved: boolean;
   addresses?: string[];
   cname?: string;
   nonPublic?: boolean;
+  networks?: Network[];
   error?: string;
   skipped?: string;
   /** Set when the answer was reused from the cache (time of the lookup). */
@@ -260,6 +282,8 @@ export interface ScanSummary {
   errors: EngineError[];
   counts: Counts;
   technologies: Technology[];
+  /** Where the hosts are served from; missing in results saved before this existed. */
+  providers?: Provider[];
 }
 
 /** One page of a listing; `next` is passed back to get the page after it. */

@@ -16,6 +16,9 @@ import (
 type Result struct {
 	Hosts        []Host       `json:"hosts"`
 	Technologies []Technology `json:"technologies"`
+	// Providers are the networks the result's hosts are served from, with
+	// how many hosts each has; largest first.
+	Providers []Provider `json:"providers"`
 	// HostsOmitted counts hostnames discovered after the scan's host limit
 	// was reached; they were not recorded.
 	HostsOmitted int `json:"hostsOmitted,omitempty"`
@@ -109,6 +112,15 @@ const (
 	URLFetched    URLState = "fetched"
 	URLVerified   URLState = "verified"
 )
+
+// Provider is a network that hosts in the result resolve to.
+type Provider struct {
+	ASN     int    `json:"asn"`
+	Name    string `json:"name,omitempty"`
+	Country string `json:"country,omitempty"`
+	// Hosts is how many of the result's hosts have an address in it.
+	Hosts int `json:"hosts"`
+}
 
 // Technology is a technology detected from observable evidence.
 type Technology struct {

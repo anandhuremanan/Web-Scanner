@@ -44,6 +44,9 @@ func openReader(ctx context.Context, path string) (*reader, error) {
 		return nil, err
 	}
 	r.summary.Hosts = []results.Host{}
+	if r.summary.Providers == nil {
+		r.summary.Providers = []results.Provider{} // results saved before providers existed
+	}
 	return r, nil
 }
 
@@ -86,6 +89,11 @@ func (r *reader) Hosts(ctx context.Context, q scan.HostQuery) (scan.HostPage, er
 	if q.Search != "" {
 		query += ` AND name LIKE ? ESCAPE '\'`
 		args = append(args, contains(q.Search))
+	}
+	if q.ASN != 0 {
+		// A host's details are stored as JSON; its networks are inside.
+		query += ` AND EXISTS (SELECT 1 FROM json_each(CAST(data AS TEXT), '$.dns.networks') WHERE json_extract(value, '$.asn') = ?)`
+		args = append(args, q.ASN)
 	}
 	query += ` ORDER BY rank`
 	if q.Limit > 0 {

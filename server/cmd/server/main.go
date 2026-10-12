@@ -271,6 +271,10 @@ func pipeline(cfg config.ScanConfig, pools sharedPools, caches sharedCaches, log
 	// host, which is several times less work than the system resolver does
 	// for the same answer. The system resolver takes over if the servers
 	// cannot be reached, and is what connections to hosts always use.
+	if cfg.NetworkInfo {
+		// Which network each address belongs to, asked over DNS.
+		dnsOptions.Networks = dnsresolve.NewNetworks(net.DefaultResolver)
+	}
 	dns := dnsresolve.New(net.DefaultResolver, dnsOptions)
 	if len(cfg.DNSServers) > 0 {
 		dns = dnsresolve.NewWith(&dnsresolve.Client{

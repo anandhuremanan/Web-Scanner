@@ -277,6 +277,11 @@ Result
   content type an archive recorded, then how the URL was referenced (for
   example `<script src>`), then the file extension, then an API-like path
   pattern (explicitly marked "not verified"), then the reference kind.
+- **Hosting.** Each resolved host carries the network its addresses belong
+  to ([dnsresolve/network.go](server/internal/discovery/dnsresolve/network.go)).
+  When a result is built, hosts are counted per network into `providers`,
+  which the client shows as the Hosting tab; the hosts of one network are
+  listed with `GET /hosts?asn=`.
 - **Technologies** are detected from simple, visible evidence (URL path
   fragments like `/_next/`, `Server`/`X-Powered-By` headers, `<meta
   name="generator">`).

@@ -125,6 +125,9 @@ type ScanConfig struct {
 	HostConcurrency int
 	// DNSTimeout bounds resolving one host.
 	DNSTimeout time.Duration
+	// NetworkInfo adds to each resolved host which network (operator and
+	// country) its addresses belong to.
+	NetworkInfo bool
 	// DNSServers are the resolvers asked directly ("host:port"); empty
 	// means the operating system's resolver.
 	DNSServers []string
@@ -210,6 +213,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			MaxResolveHosts:      p.int("SCAN_MAX_RESOLVE_HOSTS", 10000, 1),
 			HostConcurrency:      p.int("SCAN_HOST_CONCURRENCY", 8, 1),
 			DNSTimeout:           p.duration("SCAN_DNS_TIMEOUT", 5*time.Second),
+			NetworkInfo:          p.bool("SCAN_NETWORK_INFO", true),
 			DNSServers:           p.dnsServers("SCAN_DNS_SERVERS", "1.1.1.1:53,8.8.8.8:53"),
 			ConnectTimeout:       p.duration("SCAN_CONNECT_TIMEOUT", 4*time.Second),
 			SubdomainSources:     p.list("SCAN_SUBDOMAIN_SOURCES", "crtsh,certspotter,anubis,thc,shodan", SubdomainSources...),
