@@ -31,8 +31,12 @@ describe("SiteFooter", () => {
     expect(href("Anandhu Remanan")).toBe("https://imanandhu.in");
     expect(href("Source on GitHub")).toBe("https://github.com/anandhuremanan/website_mapper");
     expect(href("MIT License")).toBe("https://github.com/anandhuremanan/website_mapper/blob/main/LICENSE");
+    expect(href("Terms & Privacy")).toBe("/terms");
+    // Links that open another site do so safely.
     for (const link of screen.getAllByRole("link")) {
-      expect(link.getAttribute("rel")).toContain("noopener");
+      if (link.getAttribute("href")?.startsWith("http")) {
+        expect(link.getAttribute("rel")).toContain("noopener");
+      }
     }
   });
 });

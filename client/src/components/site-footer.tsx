@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const sourceUrl = "https://github.com/anandhuremanan/website_mapper";
 export const authorUrl = "https://imanandhu.in";
 
@@ -12,7 +14,10 @@ export function SiteFooter() {
             Anandhu Remanan
           </a>
         </p>
-        <p className="flex gap-4">
+        <p className="flex flex-wrap gap-x-4 gap-y-1">
+          <Link href="/terms" className="hover:text-fg hover:underline">
+            Terms &amp; Privacy
+          </Link>
           <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:text-fg hover:underline">
             Source on GitHub
           </a>

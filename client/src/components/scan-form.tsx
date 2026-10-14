@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { track } from "@/lib/analytics";
@@ -118,6 +119,16 @@ export function ScanForm() {
           {error}
         </p>
       )}
+      {/* Agreement by starting a scan, rather than another box to tick:
+          the visitor check may already show one. */}
+      <p className="text-xs text-muted">
+        By starting a scan you confirm that you own this domain or have permission to scan it, and
+        you agree to the{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-fg">
+          Terms of Use
+        </Link>
+        .
+      </p>
     </form>
   );
 }
