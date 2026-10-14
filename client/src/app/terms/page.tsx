@@ -23,76 +23,102 @@ export default function Terms() {
       </header>
 
       <p>
-        Web Scanner lists what is publicly discoverable about a website: its subdomains and the
-        pages on them, with the public source each one came from. By starting a scan you agree to
-        these terms.
+        Web Scanner lists what public sources record about a website: its subdomains, their pages,
+        and where each one was found. By starting a scan, you agree to these terms.
       </p>
 
       <h2 className="border-b border-border pb-1 text-lg font-semibold">Terms of Use</h2>
 
-      <Section title="Who may scan what">
+      <Section title="Permitted use">
         <p>
-          Only scan domains you own, or that you have permission from the owner to inspect. You are
-          responsible for the scans you start and for how you use their results.
+          Scan only domains you own or have the owner&rsquo;s permission to inspect. You are
+          responsible for the scans you start and for how you use the results.
         </p>
       </Section>
 
-      <Section title="What you must not do">
+      <Section title="Prohibited use">
+        <p>Do not:</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>Use the service, or its results, for anything unlawful, or to harm or attack anyone.</li>
-          <li>Scan systems you are not authorised to inspect.</li>
-          <li>Try to get around its limits, overload it, or use it through automated scripts.</li>
+          <li>use the service or its results unlawfully, or to harm or attack anyone;</li>
+          <li>scan systems you are not authorised to inspect;</li>
+          <li>circumvent its limits, overload it, or access it with automated scripts.</li>
         </ul>
       </Section>
 
-      <Section title="What the service does">
+      <Section title="How scans work">
         <p>
-          A scan reads public sources: certificate transparency logs, public subdomain databases, a
-          public web archive and DNS. A passive scan never contacts the scanned site. Standard and
-          full scans make a limited number of ordinary page requests to it, at a modest rate. The
-          service never logs in, submits forms, guesses pages or names, or tests for
-          vulnerabilities.
+          Every scan queries public sources: certificate transparency logs, public subdomain
+          databases, a public web archive, and DNS. Passive scans never contact the target site.
+          Standard and full scans also send it a limited number of ordinary, rate-limited page
+          requests. The service never logs in, submits forms, guesses URLs or hostnames, or tests
+          for vulnerabilities.
         </p>
       </Section>
 
-      <Section title="No guarantees">
+      <Section title="Third-party information">
         <p>
-          The service is provided free, as is, without any warranty. Results can be incomplete,
-          out of date or wrong: they show what public sources recorded, not a full inventory of a
-          site. The service may be slow, unavailable, changed or stopped at any time.
+          Results are compiled from public third-party sources and from what target sites serve
+          publicly. We do not control, verify or endorse that information, and listing a host or
+          page says nothing about who owns or operates it.
         </p>
+      </Section>
+
+      <Section title="No warranty">
         <p>
-          To the extent the law allows, the operator is not liable for any loss or damage arising
-          from using the service or relying on its results.
+          The service is free and provided &ldquo;as is&rdquo;, without warranty of any kind.
+          Results reflect what public sources have recorded. They may be incomplete, outdated or
+          wrong, and are not a full inventory of any site. We may change, suspend or discontinue the
+          service at any time.
+        </p>
+      </Section>
+
+      <Section title="Limitation of liability">
+        <p>
+          To the extent permitted by law, we are not liable for any loss or damage arising from
+          your use of the service or reliance on its results.
+        </p>
+      </Section>
+
+      <Section title="Indemnity">
+        <p>
+          You agree to indemnify us against claims, losses and costs arising from your scans, your
+          use of the results, or your breach of these terms.
         </p>
       </Section>
 
       <Section title="Our rights">
         <p>
-          We may limit, refuse or stop scans, and remove results, at our discretion, for example to
-          prevent misuse or to respect a site owner&apos;s request.
+          We may limit, refuse or stop scans, and remove results, at our discretion. For example,
+          we may do this to prevent misuse or at a site owner&rsquo;s request.
+        </p>
+      </Section>
+
+      <Section title="Governing law">
+        <p>
+          These terms are governed by the laws of India. If any part of them is found
+          unenforceable, the rest still applies.
         </p>
       </Section>
 
       <h2 className="border-b border-border pb-1 text-lg font-semibold">Privacy</h2>
 
-      <Section title="Scans and their results">
+      <Section title="What we store">
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            The domain you enter, the scan mode and the results are stored on our server for up to
-            about a week, then deleted automatically (sooner if storage fills up).
+            The domain, scan mode and results are kept on our server for up to 7 days, then deleted
+            automatically (sooner if storage runs low).
           </li>
           <li>
-            Anyone with the link to a result can open it while it is stored. Do not share the link
-            if you do not want others to see the result.
+            Anyone with a result&rsquo;s link can view it while it is stored. Share the link only
+            with people you want to see it.
           </li>
           <li>
-            The server keeps short operational logs, which include the domains scanned. They are
-            used to run and protect the service.
+            Our server keeps brief operational logs, including scanned domains, to run and protect
+            the service.
           </li>
           <li>
-            To find results, the domain you enter is sent to the public sources listed above, and in
-            standard and full scans the scanned site receives ordinary page requests from our server.
+            The domain you enter is sent to the public sources above. In standard and full scans,
+            the target site also receives page requests from our server.
           </li>
         </ul>
       </Section>
@@ -100,15 +126,15 @@ export default function Terms() {
       <Section title="Your connection">
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            Your IP address is used, in memory only, to limit how many scans one visitor can start.
-            Our own logs do not record it.
+            Your IP address is held in memory only, to limit scans per visitor. Our logs do not
+            record it.
           </li>
           <li>
-            Before a scan, Cloudflare Turnstile checks that the visitor is a person, which involves
-            your browser sending signals to Cloudflare.
+            Before a scan, Cloudflare Turnstile checks that you are human. To do this, your browser
+            sends signals to Cloudflare.
           </li>
           <li>
-            Our hosting providers (Vercel and Cloudflare) process your requests and may keep their
+            Our hosting providers, Vercel and Cloudflare, process your requests and may keep their
             standard logs.
           </li>
         </ul>
@@ -116,24 +142,25 @@ export default function Terms() {
 
       <Section title="Usage statistics">
         <p>
-          We count how the site is used with PostHog (hosted in the EU): scans started, finished or
-          cancelled, tabs opened, and downloads. These statistics never include the domain you
-          scan, its hosts or URLs. They use no cookies, store nothing in your browser and do not
-          record your screen. PostHog receives your IP address with each event.
+          We use PostHog (EU-hosted) to count scans started, finished or cancelled, tabs opened,
+          and downloads. These events never include the scanned domain, its hosts or URLs. PostHog
+          sets no cookies, stores nothing in your browser and does not record your screen, but it
+          receives your IP address with each event.
         </p>
       </Section>
 
-      <Section title="Browser storage and cookies">
+      <Section title="Cookies and browser storage">
         <p>
-          The site sets no cookies of its own. While a scan runs, it keeps an identifier for that
-          scan in your browser tab (session storage), so you can cancel it; it is gone when you
-          close the tab. Cloudflare Turnstile may use its own storage to do its check.
+          We set no cookies. While a scan runs, its ID is kept in your tab&rsquo;s session storage
+          so you can cancel it; it is cleared when you close the tab. Cloudflare Turnstile may use
+          its own storage for its check.
         </p>
       </Section>
 
-      <Section title="Questions, removal and objections">
+      <Section title="Contact, removal and objections">
         <p>
-          To ask a question, have a stored result removed, or object to a scan of your domain,{" "}
+          To ask a question, request removal of a stored result, or object to a scan of your
+          domain,{" "}
           <a
             href={`${sourceUrl}/issues`}
             target="_blank"
@@ -142,14 +169,14 @@ export default function Terms() {
           >
             open an issue on GitHub
           </a>
-          . Please do not include personal details there; we will reply on the issue.
+          . Do not post personal details there; we will reply on the issue.
         </p>
       </Section>
 
       <Section title="Changes">
         <p>
-          We may update these terms; the date at the top shows when. Using the service after a
-          change means you accept the updated terms.
+          We may update these terms; the date above shows the latest version. Continuing to use the
+          service after an update means you accept it.
         </p>
       </Section>
 
