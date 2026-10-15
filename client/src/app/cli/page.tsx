@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Command } from "@/components/command";
+import { JsonLd } from "@/components/json-ld";
 import { sourceUrl } from "@/components/site-footer";
 import { TerminalIcon } from "@/components/terminal-icon";
 
 export const metadata: Metadata = {
-  title: "Command-line tool · Web Scanner",
-  description: "Run Web Scanner on your own computer, without the website's limits.",
+  title: "Command-line tool: find subdomains and URLs from your terminal",
+  description:
+    "webscanner, a free command-line tool for Windows, macOS and Linux that lists a domain's subdomains and URLs from public sources and saves them as JSON and CSV. One-line install.",
+  alternates: { canonical: "/cli" },
+  openGraph: { url: "/cli", title: "webscanner command-line tool" },
 };
 
 // The installers and releases live in the GitHub repository.
@@ -18,6 +22,20 @@ const owner = repo.split("/")[0];
 export default function CliPage() {
   return (
     <article className="mx-auto max-w-2xl space-y-10 text-sm leading-6">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "webscanner",
+          description: metadata.description,
+          applicationCategory: "DeveloperApplication",
+          operatingSystem: "Windows, macOS, Linux",
+          downloadUrl: releases,
+          softwareHelp: `${sourceUrl}/tree/main/cli`,
+          license: "https://opensource.org/licenses/MIT",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }}
+      />
       <header className="space-y-3">
         <p className="flex items-center gap-2 text-muted">
           <TerminalIcon />

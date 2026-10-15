@@ -3,8 +3,9 @@ import Link from "next/link";
 import { sourceUrl } from "@/components/site-footer";
 
 export const metadata: Metadata = {
-  title: "Terms of Use and Privacy · Web Scanner",
+  title: "Terms of Use and Privacy",
   description: "The rules for using Web Scanner, and what it stores about you.",
+  alternates: { canonical: "/terms" },
 };
 
 /** The date these terms last changed; update it with every change. */
