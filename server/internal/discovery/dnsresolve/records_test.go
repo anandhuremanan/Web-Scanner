@@ -15,11 +15,13 @@ import (
 
 // fakeRecords answers record questions for one domain and counts them.
 type fakeRecords struct {
-	mu    sync.Mutex
-	mx    []*net.MX
-	ns    []*net.NS
-	txt   []string
-	asked int
+	mu  sync.Mutex
+	mx  []*net.MX
+	ns  []*net.NS
+	txt []string
+	// policies are TXT records at other names, such as _dmarc.example.com.
+	policies map[string][]string
+	asked    int
 }
 
 func (f *fakeRecords) count() {
@@ -41,8 +43,14 @@ func (f *fakeRecords) LookupNS(context.Context, string) ([]*net.NS, error) {
 	return f.ns, nil
 }
 
-func (f *fakeRecords) LookupTXT(context.Context, string) ([]string, error) {
+func (f *fakeRecords) LookupTXT(_ context.Context, name string) ([]string, error) {
 	f.count()
+	if strings.HasPrefix(name, "_") {
+		if t, ok := f.policies[name]; ok {
+			return t, nil
+		}
+		return nil, errors.New("no such name")
+	}
 	return f.txt, nil
 }
 
@@ -102,8 +110,8 @@ func TestEngineReadsRecordsForTheDomainOnly(t *testing.T) {
 	if got["www.example.com"].Records != nil {
 		t.Error("a subdomain must not carry the domain's records")
 	}
-	if rec.asked != 3 {
-		t.Errorf("record questions = %d, want 3 (MX, NS, TXT once)", rec.asked)
+	if rec.asked != 6 {
+		t.Errorf("record questions = %d, want 6 (MX, NS, TXT and three mail policies, once)", rec.asked)
 	}
 }
 
@@ -145,5 +153,35 @@ func TestDanglingAlias(t *testing.T) {
 	}
 	if d := got["ok.example.com"]; !d.Resolved || d.DanglingAlias || d.CNAME != "ok.cdn.example.net" {
 		t.Errorf("working alias = %+v", d)
+	}
+}
+
+func TestMailSecurity(t *testing.T) {
+	r := &fakeRecords{
+		txt: []string{"v=spf1 include:_spf.google.com -all", "google-site-verification=abc"},
+		policies: map[string][]string{
+			"_dmarc.example.com":     {"v=DMARC1; p=reject; rua=mailto:dmarc@example.com"},
+			"_smtp._tls.example.com": {"v=TLSRPTv1; rua=mailto:tls@example.com"},
+			"_mta-sts.example.com":   {"something else"},
+		},
+	}
+	got := domainRecords(context.Background(), r, "example.com").Mail
+	if got == nil {
+		t.Fatal("no mail security")
+	}
+	if !reflect.DeepEqual(got.SPF, []string{"v=spf1 include:_spf.google.com -all"}) {
+		t.Errorf("SPF = %v", got.SPF)
+	}
+	if len(got.DMARC) != 1 || len(got.TLSRPT) != 1 {
+		t.Errorf("DMARC = %v, TLS-RPT = %v", got.DMARC, got.TLSRPT)
+	}
+	// A record that is not a policy is not reported as one.
+	if len(got.MTASTS) != 0 {
+		t.Errorf("MTA-STS = %v", got.MTASTS)
+	}
+
+	// None published at all: nothing to report.
+	if m := domainRecords(context.Background(), &fakeRecords{ns: []*net.NS{{Host: "ns1.example.net."}}}, "example.com").Mail; m != nil {
+		t.Errorf("no policies = %+v", m)
 	}
 }

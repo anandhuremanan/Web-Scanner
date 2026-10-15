@@ -177,6 +177,8 @@ export interface DomainRecords {
   txt?: string[];
   /** Services the records show the domain uses, each with the record. */
   services?: { name: string; evidence: string }[];
+  /** Mail security policies, each the records found (normally one). */
+  mail?: { spf: string[]; dmarc: string[]; mtaSts: string[]; tlsRpt: string[] };
 }
 
 /** The TLS certificate a host presented. */

@@ -259,6 +259,20 @@ func printSummary(w io.Writer, sc scan.Scan, res scan.Result, files []string) {
 			fmt.Fprintf(w, "  %s\n", s.Name)
 		}
 	}
+	if res.DNS != nil && res.DNS.Mail != nil {
+		m := res.DNS.Mail
+		fmt.Fprintln(w, "\nMail security records:")
+		for _, row := range []struct {
+			name    string
+			records []string
+		}{{"SPF", m.SPF}, {"DMARC", m.DMARC}, {"MTA-STS", m.MTASTS}, {"TLS reporting", m.TLSRPT}} {
+			state := "not published"
+			if len(row.records) > 0 {
+				state = row.records[0]
+			}
+			fmt.Fprintf(w, "  %-14s %s\n", row.name, state)
+		}
+	}
 	if len(res.DanglingAliases) > 0 {
 		fmt.Fprintln(w, "\nAliases to names that do not exist (check whether they are still needed):")
 		for _, h := range res.DanglingAliases {

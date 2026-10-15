@@ -26,7 +26,7 @@ const (
 )
 
 // domainRecords reads the public DNS records that describe a domain as a
-// whole: three questions, asked once per scan. Records that cannot be read
+// whole: six questions, asked once per scan. Records that cannot be read
 // are left out; nil means none could.
 func domainRecords(ctx context.Context, r RecordResolver, domain string) *discovery.DomainRecords {
 	ctx, cancel := context.WithTimeout(ctx, 6*time.Second)
@@ -60,10 +60,51 @@ func domainRecords(ctx context.Context, r RecordResolver, domain string) *discov
 			out.TXT = append(out.TXT, t)
 		}
 	}
-	if len(out.MX) == 0 && len(out.NS) == 0 && len(out.TXT) == 0 {
+	out.Mail = mailSecurity(ctx, r, domain, out.TXT)
+	if len(out.MX) == 0 && len(out.NS) == 0 && len(out.TXT) == 0 && out.Mail == nil {
 		return nil
 	}
 	out.Services = services(out)
+	return out
+}
+
+// mailSecurity reads the domain's mail security policies: SPF from its own
+// TXT records (already read), the others from their own names. Three more
+// DNS questions. nil means none is published.
+func mailSecurity(ctx context.Context, r RecordResolver, domain string, txt []string) *discovery.MailSecurity {
+	m := &discovery.MailSecurity{
+		SPF:    withPrefix(txt, "v=spf1"),
+		DMARC:  lookupPolicy(ctx, r, "_dmarc."+domain, "v=dmarc1"),
+		MTASTS: lookupPolicy(ctx, r, "_mta-sts."+domain, "v=stsv1"),
+		TLSRPT: lookupPolicy(ctx, r, "_smtp._tls."+domain, "v=tlsrptv1"),
+	}
+	if len(m.SPF)+len(m.DMARC)+len(m.MTASTS)+len(m.TLSRPT) == 0 {
+		return nil
+	}
+	return m
+}
+
+func lookupPolicy(ctx context.Context, r RecordResolver, name, prefix string) []string {
+	txt, err := r.LookupTXT(ctx, name)
+	if err != nil {
+		return []string{}
+	}
+	return withPrefix(txt, prefix)
+}
+
+// withPrefix keeps the records that start with prefix (ignoring case), cut
+// to maxTXTLength.
+func withPrefix(records []string, prefix string) []string {
+	out := []string{}
+	for _, t := range records {
+		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(t)), prefix) {
+			continue
+		}
+		if len(t) > maxTXTLength {
+			t = t[:maxTXTLength] + "..."
+		}
+		out = append(out, t)
+	}
 	return out
 }
 

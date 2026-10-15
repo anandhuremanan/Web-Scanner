@@ -195,6 +195,7 @@ describe("DNS tab, alias note and sharing", () => {
       ns: ["bob.ns.cloudflare.com"],
       txt: ["v=spf1 include:_spf.google.com ~all"],
       services: [{ name: "Google Workspace (mail)", evidence: "MX aspmx.l.google.com" }],
+      mail: { spf: ["v=spf1 include:_spf.google.com ~all"], dmarc: ["v=DMARC1; p=reject"], mtaSts: [], tlsRpt: [] },
     },
     danglingAliases: ["shop.example.com"],
   };
@@ -205,7 +206,9 @@ describe("DNS tab, alias note and sharing", () => {
     expect(screen.getByText("Google Workspace (mail)")).toBeTruthy();
     expect(screen.getByText(/^1\s+aspmx\.l\.google\.com$/)).toBeTruthy();
     expect(screen.getByText("bob.ns.cloudflare.com")).toBeTruthy();
-    expect(screen.getByText("v=spf1 include:_spf.google.com ~all")).toBeTruthy();
+    expect(screen.getAllByText("v=spf1 include:_spf.google.com ~all").length).toBe(2); // TXT list and SPF row
+    expect(screen.getByText("Receivers are asked to reject mail that fails the check.")).toBeTruthy();
+    expect(screen.getAllByText("not published").length).toBe(2); // MTA-STS and TLS reporting
   });
 
   it("says so when no records were read", () => {
