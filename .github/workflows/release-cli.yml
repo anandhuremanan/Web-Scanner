@@ -1,0 +1,97 @@
+name: Release webscanner CLI
+
+# Builds the command-line tool for every supported system and publishes the
+# files as a GitHub release. Runs only when a tag like cli-v1.0.0 is pushed:
+#   git tag cli-v1.0.0 && git push origin cli-v1.0.0
+on:
+  push:
+    tags:
+      - "cli-v*"
+
+permissions:
+  contents: write # to create the release
+
+concurrency:
+  group: release-cli-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: |
+            cli/go.sum
+            server/go.sum
+
+      - name: Test
+        working-directory: cli
+        run: |
+          set -euo pipefail
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+
+      - name: Build
+        working-directory: cli
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#cli-v}"
+          mkdir -p ../dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            name="webscanner_${version}_${os}_${arch}"
+            bin="webscanner"
+            if [ "$os" = windows ]; then bin="webscanner.exe"; fi
+
+            work="$(mktemp -d)"
+            # Static binary: no cgo, nothing to install on the user's side.
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build \
+              -trimpath \
+              -ldflags "-s -w -X main.version=${version}" \
+              -o "$work/$bin" .
+            cp README.md "$work/README.md"
+
+            if [ "$os" = windows ]; then
+              (cd "$work" && zip -q "$GITHUB_WORKSPACE/dist/$name.zip" "$bin" README.md)
+            else
+              tar -C "$work" -czf "../dist/$name.tar.gz" "$bin" README.md
+            fi
+            rm -rf "$work"
+          done
+          (cd ../dist && sha256sum * > checksums.txt)
+          ls -l ../dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#cli-v}"
+          cat > notes.md <<NOTES
+          webscanner ${version}, the Web Scanner command-line tool.
+
+          Install on Linux or macOS:
+
+              curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/cli/install.sh | sh
+
+          Install on Windows (PowerShell):
+
+              irm https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/cli/install.ps1 | iex
+
+          Or download the file for your system below and check it against checksums.txt.
+          Only scan domains you own or have permission to inspect.
+          NOTES
+          gh release create "$TAG" dist/* --title "webscanner ${version}" --notes-file notes.md

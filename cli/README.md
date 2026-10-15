@@ -7,6 +7,32 @@ limits on how much one scan may do.
 
 Only scan domains you own or have permission to inspect.
 
+## Install
+
+Linux and macOS:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/anandhuremanan/website_mapper/main/cli/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/anandhuremanan/website_mapper/main/cli/install.ps1 | iex
+```
+
+Both download the latest release for your system from GitHub, check it
+against the published checksums, and install it (Linux and macOS: in
+`/usr/local/bin` if writable, otherwise `~/.local/bin`; Windows: in
+`%LOCALAPPDATA%\Programs\webscanner`, added to your PATH). Set
+`WEBSCANNER_VERSION` for a specific version or `INSTALL_DIR` for another
+folder. You can also download a file from the
+[releases page](https://github.com/anandhuremanan/website_mapper/releases)
+yourself.
+
+The programs are not signed, so Windows or macOS may warn the first time
+you run one that you downloaded with a browser.
+
 ## Use
 
 ```sh
@@ -56,6 +82,17 @@ Requests come from your computer and your IP address.
 Subdomain sources' answers are remembered for 30 days in your user cache
 folder (for example `~/.cache/webscanner` on Linux), so slow sources such as
 crt.sh answer at once on the next scan.
+
+## Releasing
+
+Pushing a tag starting with `cli-v` builds the program for Linux, macOS and
+Windows (Intel and ARM) and publishes a GitHub release with the files and a
+`checksums.txt` ([release-cli.yml](../.github/workflows/release-cli.yml)):
+
+```sh
+git tag cli-v1.0.0
+git push origin cli-v1.0.0
+```
 
 ## Build
 
