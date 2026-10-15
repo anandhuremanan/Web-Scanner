@@ -11,7 +11,7 @@ It is a passive discovery tool, not a vulnerability scanner: it reads public
 sources, sends ordinary `GET` requests at a polite rate, and never submits
 forms, guesses paths or brute-forces names.
 
-[![CI](https://github.com/anandhuremanan/website_mapper/actions/workflows/ci.yml/badge.svg)](https://github.com/anandhuremanan/website_mapper/actions/workflows/ci.yml)
+[![CI](https://github.com/anandhuremanan/Web-Scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/anandhuremanan/Web-Scanner/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features

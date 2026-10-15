@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const sourceUrl = "https://github.com/anandhuremanan/website_mapper";
+export const sourceUrl = "https://github.com/anandhuremanan/Web-Scanner";
 export const authorUrl = "https://imanandhu.in";
 
 /** Credits and links shown at the bottom of every page. */

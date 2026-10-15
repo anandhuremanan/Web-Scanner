@@ -28,8 +28,8 @@ be merged. See [Safety rules](ARCHITECTURE.md#safety-rules).
 You need **Go 1.26+** and **Node.js 20.9+**.
 
 ```sh
-git clone https://github.com/anandhuremanan/website_mapper.git
-cd website_mapper
+git clone https://github.com/anandhuremanan/Web-Scanner.git
+cd Web-Scanner
 
 # Terminal 1: API on :8080
 cd server

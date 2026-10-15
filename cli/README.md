@@ -12,13 +12,13 @@ Only scan domains you own or have permission to inspect.
 Linux and macOS:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/anandhuremanan/website_mapper/main/cli/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.sh | sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/anandhuremanan/website_mapper/main/cli/install.ps1 | iex
+irm https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.ps1 | iex
 ```
 
 Both download the latest release for your system from GitHub, check it
@@ -27,7 +27,7 @@ against the published checksums, and install it (Linux and macOS: in
 `%LOCALAPPDATA%\Programs\webscanner`, added to your PATH). Set
 `WEBSCANNER_VERSION` for a specific version or `INSTALL_DIR` for another
 folder. You can also download a file from the
-[releases page](https://github.com/anandhuremanan/website_mapper/releases)
+[releases page](https://github.com/anandhuremanan/Web-Scanner/releases)
 yourself.
 
 The programs are not signed, so Windows or macOS may warn the first time

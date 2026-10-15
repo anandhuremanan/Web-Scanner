@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { ScanForm } from "@/components/scan-form";
+import { TerminalIcon } from "@/components/terminal-icon";
 
 export default function Home() {
   return (
@@ -11,6 +13,14 @@ export default function Home() {
       <div className="mt-8">
         <ScanForm />
       </div>
+
+      <Link
+        href="/cli"
+        className="mt-6 inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent hover:text-fg"
+      >
+        <TerminalIcon />
+        Run it on your computer with the command-line tool
+      </Link>
 
       <section className="mt-12 space-y-3 text-sm leading-6 text-muted">
         <h2 className="font-medium text-fg">What the scan does</h2>
