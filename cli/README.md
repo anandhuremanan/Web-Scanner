@@ -52,6 +52,8 @@ webscanner example.com                     # standard scan, results saved to a f
 webscanner -mode passive example.com       # never contacts the site
 webscanner -mode full -pages 1000 example.com
 webscanner -print urls -no-files example.com > urls.txt
+webscanner -serve example.com              # scan, then show the result in your browser
+webscanner view webscanner-example.com-20261015-101500   # show a saved result
 ```
 
 Progress and a summary are shown while it runs. The results are saved to
@@ -62,6 +64,13 @@ Progress and a summary are shown while it runs. The results are saved to
 | `result.json` | everything, in the same shape as the website's `/results` endpoint |
 | `hosts.csv` | one row per host: state, sources, addresses, network, HTTP status, certificate |
 | `urls.csv` | one row per URL: type, state, status, sources, first archived |
+| `scan/` | the scan's database, which `webscanner view` reads |
+
+`webscanner view <folder>` shows a saved result in your browser, with the
+hosts, URLs, a site map, hosting networks and DNS records, like the website.
+It is served from this computer only (127.0.0.1, a free port) and stops at
+Ctrl-C. `-no-open` prints the address instead of opening the browser, and
+`-addr` picks the address.
 
 Press Ctrl-C once to stop a scan and keep what it found; twice to quit at
 once.
@@ -71,6 +80,7 @@ once.
 | `-mode` | `passive`, `standard` (default) or `full` |
 | `-out` | folder for the result files |
 | `-no-files` | write no files |
+| `-serve` | show the result in your browser when the scan ends |
 | `-print` | also print `hosts` or `urls` to standard output, one per line |
 | `-pages`, `-depth` | full mode: pages per host (500) and link depth (3) |
 | `-timeout` | stop after this long, keeping what was found (default: no limit) |

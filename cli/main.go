@@ -53,6 +53,7 @@ type options struct {
 	quiet    bool
 	verbose  bool
 	noMemory bool
+	serve    bool
 }
 
 const usage = `webscanner lists what is publicly discoverable about a domain: its
@@ -60,12 +61,14 @@ subdomains and the pages on them, and where each one was found.
 
 Usage:
   webscanner [flags] <domain or URL>
+  webscanner view <result folder>     show a saved result in your browser
 
 Examples:
   webscanner example.com
   webscanner -mode passive example.com
   webscanner -mode full -pages 1000 https://www.example.com/
   webscanner -print urls -no-files example.com > urls.txt
+  webscanner -serve example.com
 
 Modes:
   passive    public sources only; never contacts the site
@@ -100,6 +103,7 @@ func parseArgs(args []string, stderr io.Writer) (options, error) {
 	fs.BoolVar(&o.quiet, "quiet", false, "show no progress or summary")
 	fs.BoolVar(&o.verbose, "verbose", false, "log what each step does")
 	fs.BoolVar(&o.noMemory, "no-memory", false, "do not remember subdomain sources' answers between runs")
+	fs.BoolVar(&o.serve, "serve", false, "show the result in your browser when the scan ends")
 	showVersion := fs.Bool("version", false, "print the version and exit")
 	if err := fs.Parse(args); err != nil {
 		return o, err
@@ -121,6 +125,9 @@ func parseArgs(args []string, stderr io.Writer) (options, error) {
 	if o.print != "" && o.print != "hosts" && o.print != "urls" {
 		return o, fmt.Errorf("unknown -print %q: use hosts or urls", o.print)
 	}
+	if o.serve && o.noFiles {
+		return o, errors.New("-serve shows the saved result, so it cannot be used with -no-files")
+	}
 	if o.pages < 1 || o.depth < 0 {
 		return o, errors.New("-pages must be at least 1 and -depth at least 0")
 	}
@@ -132,6 +139,9 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "view" {
+		return runView(args[1:], stderr)
+	}
 	o, err := parseArgs(args, stderr)
 	if errors.Is(err, flag.ErrHelp) {
 		return exitOK
@@ -167,8 +177,9 @@ func scanAndSave(ctx context.Context, o options, stdout, stderr io.Writer) (int,
 	}
 	cfg.Scan.MaxURLs, cfg.Scan.MaxDepth = o.pages, o.depth
 
-	// The scan is stored in a temporary folder while it runs, and the
-	// result files are written from it at the end.
+	// The scan is stored in a temporary folder while it runs. At the end the
+	// result files are written from it, and its database is moved into the
+	// result folder for "webscanner view".
 	work, err := os.MkdirTemp("", "webscanner-")
 	if err != nil {
 		return exitError, err
@@ -226,8 +237,9 @@ func scanAndSave(ctx context.Context, o options, stdout, stderr io.Writer) (int,
 	defer rd.Close()
 
 	var files []string
+	dir := ""
 	if !o.noFiles {
-		dir := o.out
+		dir = o.out
 		if dir == "" {
 			dir = defaultOut(sc.Domain, time.Now())
 		}
@@ -240,16 +252,44 @@ func scanAndSave(ctx context.Context, o options, stdout, stderr io.Writer) (int,
 			return exitError, err
 		}
 	}
+	summary := rd.Summary()
+
+	// Close everything that has the database open, then keep it.
+	rd.Close()
+	_ = svc.Shutdown(context.Background())
+	_ = repo.Close()
+	if dir != "" {
+		if err := keepScan(work, sc.ID, dir); err != nil {
+			fmt.Fprintln(stderr, "webscanner: could not keep the scan for viewing:", err)
+		} else {
+			files = append(files, filepath.Join(dir, scanDir)+string(filepath.Separator))
+		}
+	}
 	if !o.quiet {
-		printSummary(stderr, final, rd.Summary(), files)
+		printSummary(stderr, final, summary, files)
+		if dir != "" && !o.serve {
+			fmt.Fprintf(stderr, "\nTo browse the result: webscanner view %s\n", quoteArg(dir))
+		}
 	}
 	switch {
 	case interrupted:
 		return exitInterrupted, nil
 	case final.Status == scan.StatusFailed:
 		return exitError, nil
+	case o.serve:
+		if err := serveView(ctx, dir, "127.0.0.1:0", true, stderr); err != nil {
+			return exitError, err
+		}
 	}
 	return exitOK, nil
+}
+
+// quoteArg quotes a path for the command line when it has spaces.
+func quoteArg(s string) string {
+	if strings.ContainsAny(s, " \t") {
+		return `"` + s + `"`
+	}
+	return s
 }
 
 // watch shows progress until the scan finishes. If ctx ends first (Ctrl-C),

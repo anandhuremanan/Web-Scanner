@@ -20,7 +20,7 @@ Web Scanner is a discovery tool, not a vulnerability scanner. It reads public so
 ## Pages
 
 - [Web app](https://webscanner.imanandhu.in/): enter a domain and browse the results as lists, a site map, hosting and DNS views; download all URLs as CSV.
-- [Command-line tool](https://webscanner.imanandhu.in/cli): install and usage; runs on your own computer without the web app's limits and saves JSON and CSV files.
+- [Command-line tool](https://webscanner.imanandhu.in/cli): install and usage; runs on your own computer without the web app's limits and saves JSON and CSV files; `webscanner view` shows a saved result in the browser.
 - [Terms of Use and Privacy](https://webscanner.imanandhu.in/terms)
 - [Source code](https://github.com/anandhuremanan/Web-Scanner) (MIT license)
 
