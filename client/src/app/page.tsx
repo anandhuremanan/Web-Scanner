@@ -1,10 +1,35 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
 import { ScanForm } from "@/components/scan-form";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
+import { sourceUrl } from "@/components/site-footer";
 import { TerminalIcon } from "@/components/terminal-icon";
 
 export default function Home() {
   return (
     <div className="mx-auto max-w-xl pt-12">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: siteName,
+          url: siteUrl,
+          description: siteDescription,
+          applicationCategory: "SecurityApplication",
+          operatingSystem: "Any",
+          browserRequirements: "Requires JavaScript",
+          isAccessibleForFree: true,
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          featureList: [
+            "Subdomains from certificate transparency logs and public subdomain databases",
+            "URLs from the Wayback Machine, robots.txt and sitemaps",
+            "Optional crawl of live hosts",
+            "Hosting network, DNS records and TLS certificate of each host",
+            "Source shown for every result; CSV export",
+          ],
+          sameAs: [sourceUrl],
+        }}
+      />
       <h1 className="text-3xl font-semibold tracking-tight">Web Scanner</h1>
       <p className="mt-2 text-muted">
         Understand what is publicly discoverable about your website.

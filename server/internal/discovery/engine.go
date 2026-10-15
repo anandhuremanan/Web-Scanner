@@ -173,6 +173,23 @@ type DomainRecords struct {
 	TXT []string `json:"txt,omitempty"`
 	// Services are the services the records show the domain uses.
 	Services []Service `json:"services,omitempty"`
+	// Mail are the domain's published mail security policies.
+	Mail *MailSecurity `json:"mail,omitempty"`
+}
+
+// MailSecurity are the records a domain publishes to protect its mail: who
+// may send as it, and what receivers should do with mail that fails the
+// check. Each list holds the records found (normally one; empty means none
+// is published). They are reported as published, not judged.
+type MailSecurity struct {
+	// SPF: the "v=spf1" TXT records of the domain itself.
+	SPF []string `json:"spf"`
+	// DMARC: the "v=DMARC1" TXT records at _dmarc.<domain>.
+	DMARC []string `json:"dmarc"`
+	// MTASTS: the "v=STSv1" TXT records at _mta-sts.<domain>.
+	MTASTS []string `json:"mtaSts"`
+	// TLSRPT: the "v=TLSRPTv1" TXT records at _smtp._tls.<domain>.
+	TLSRPT []string `json:"tlsRpt"`
 }
 
 // MXRecord is a mail server of a domain.

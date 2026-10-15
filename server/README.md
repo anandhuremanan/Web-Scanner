@@ -853,10 +853,11 @@ URL fields:
   Answers are remembered per address; a lookup that fails is left out.
   `SCAN_NETWORK_INFO=false` turns it off.
 - **The domain's own records.** Once per scan the mail servers (MX), name
-  servers (NS) and text records (TXT) of the target domain are read: three
-  DNS questions. They are returned as `dns` in the result summary, with the
+  servers (NS) and text records (TXT) of the target domain are read. They are returned as `dns` in the result summary, with the
   services they reveal (mail provider, DNS provider, verifications), each
-  with the record as evidence. At most 40 TXT records of 600 characters are
+  with the record as evidence. Three more questions read the domain's mail security
+  policies (`dns.mail`): SPF, DMARC (`_dmarc`), MTA-STS (`_mta-sts`) and TLS
+  reporting (`_smtp._tls`), reported as published, not graded. At most 40 TXT records of 600 characters are
   kept.
 - **Aliases to names that do not exist.** When a host is an alias (CNAME)
   and the name it points to does not exist, the host is marked

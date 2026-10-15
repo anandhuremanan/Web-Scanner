@@ -520,6 +520,8 @@ function DnsRecords({ records, domain }: { records?: DomainRecords; domain: stri
         </RecordSection>
       )}
 
+      <MailSecurity mail={records.mail} />
+
       <RecordSection title="Mail servers (MX)" empty={mx.length === 0 && "None: no mail servers are published."}>
         <RecordList items={mx.map((m) => `${m.priority}  ${m.host}`)} />
       </RecordSection>
@@ -530,6 +532,75 @@ function DnsRecords({ records, domain }: { records?: DomainRecords; domain: stri
         <RecordList items={txt} />
       </RecordSection>
     </div>
+  );
+}
+
+/** What a DMARC record asks receivers to do with mail that fails its check. */
+function dmarcPolicy(record: string): string {
+  const p = /(?:^|;)\s*p\s*=\s*([a-z]+)/i.exec(record)?.[1]?.toLowerCase();
+  switch (p) {
+    case "reject":
+      return "Receivers are asked to reject mail that fails the check.";
+    case "quarantine":
+      return "Receivers are asked to treat mail that fails the check as spam.";
+    case "none":
+      return "Monitoring only: receivers are asked to report failures, not to act on them.";
+  }
+  return "No policy (p=) could be read from the record.";
+}
+
+const mailRows: {
+  key: "spf" | "dmarc" | "mtaSts" | "tlsRpt";
+  name: string;
+  what: string;
+  explain?: (record: string) => string;
+}[] = [
+  { key: "spf", name: "SPF", what: "Which servers may send mail as this domain." },
+  { key: "dmarc", name: "DMARC", what: "What receivers should do with mail that fails SPF or DKIM.", explain: dmarcPolicy },
+  { key: "mtaSts", name: "MTA-STS", what: "Whether mail sent to this domain must travel encrypted." },
+  { key: "tlsRpt", name: "TLS reporting", what: "Where problems delivering mail securely are reported." },
+];
+
+/**
+ * The domain's published mail security policies. Reported as published:
+ * whether a domain needs each one depends on how it uses mail.
+ */
+function MailSecurity({ mail }: { mail?: DomainRecords["mail"] }) {
+  return (
+    <RecordSection title="Mail security">
+      <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+        {mailRows.map((row) => {
+          const records = mail?.[row.key] ?? [];
+          return (
+            <li key={row.key} className="space-y-1 px-3 py-2">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <span className="font-medium">{row.name}</span>
+                <span className={`text-xs ${records.length > 0 ? "text-ok" : "text-muted"}`}>
+                  {records.length === 0
+                    ? "not published"
+                    : records.length === 1
+                      ? "published"
+                      : `${records.length} records published`}
+                </span>
+              </div>
+              <div className="text-xs text-muted">{row.what}</div>
+              {records.map((r) => (
+                <div key={r} className="space-y-0.5">
+                  <div className="break-all font-mono text-xs">{r}</div>
+                  {row.explain && <div className="text-xs">{row.explain(r)}</div>}
+                </div>
+              ))}
+              {row.key === "spf" && records.length > 1 && (
+                <div className="text-xs text-warn">
+                  A domain should publish one SPF record; receivers may reject the check when there
+                  are several.
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </RecordSection>
   );
 }
 

@@ -1,0 +1,31 @@
+# Web Scanner
+
+> Web Scanner lists what is publicly discoverable about a website: its subdomains and the pages (URLs) on them, with the public source each result came from. It is a free web app at https://webscanner.imanandhu.in and a free, open-source command-line tool (webscanner) for Windows, macOS and Linux.
+
+Web Scanner is a discovery tool, not a vulnerability scanner. It reads public sources and, in some modes, makes a limited number of ordinary page requests. It never logs in, submits forms, guesses pages or names, scans ports or tests for vulnerabilities. Only scan domains you own or have permission to inspect.
+
+## What it finds
+
+- Subdomains, from certificate transparency logs (crt.sh, Cert Spotter, Shodan), public subdomain databases and DNS.
+- Pages and other URLs, from the Wayback Machine (web archive), robots.txt and sitemaps, and optionally by following links.
+- For each host: whether it resolves and answers, its IP addresses, the network that hosts it, and its TLS certificate.
+- For the domain: mail servers, name servers, text records, mail security records (SPF, DMARC, MTA-STS) and the services they reveal.
+
+## Scan modes
+
+- Passive: public sources only; never contacts the site.
+- Standard: also checks which hosts are live and reads their robots.txt and sitemaps.
+- Full crawl: also follows links on each live host.
+
+## Pages
+
+- [Web app](https://webscanner.imanandhu.in/): enter a domain and browse the results as lists, a site map, hosting and DNS views; download all URLs as CSV.
+- [Command-line tool](https://webscanner.imanandhu.in/cli): install and usage; runs on your own computer without the web app's limits and saves JSON and CSV files.
+- [Terms of Use and Privacy](https://webscanner.imanandhu.in/terms)
+- [Source code](https://github.com/anandhuremanan/Web-Scanner) (MIT license)
+
+## Install the command-line tool
+
+- Linux and macOS: `curl -fsSL https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.sh | sh`
+- Windows (PowerShell): `irm https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.ps1 | iex`
+- Then: `webscanner example.com` (or `webscanner -mode passive example.com`)

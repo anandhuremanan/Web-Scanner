@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@/components/analytics";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,8 +17,39 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web Scanner",
-  description: "Understand what is publicly discoverable about your website.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Web Scanner: find every subdomain and URL of a website",
+    template: `%s · ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [
+    "subdomain finder",
+    "find subdomains",
+    "subdomain enumeration",
+    "website URL finder",
+    "list all pages of a website",
+    "certificate transparency search",
+    "Wayback Machine URLs",
+    "attack surface discovery",
+    "DNS records lookup",
+    "website map",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName,
+    url: "/",
+    title: "Web Scanner: find every subdomain and URL of a website",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Web Scanner: find every subdomain and URL of a website",
+    description: siteDescription,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
