@@ -82,6 +82,16 @@ export default function CliPage() {
         <Command label="show all options">webscanner -help</Command>
       </Section>
 
+      <Section title="Browse a result">
+        <Command label="scan, then open the result">webscanner -serve example.com</Command>
+        <Command label="open a saved result">webscanner view webscanner-example.com-20261015-101500</Command>
+        <p className="text-muted">
+          Opens the result in your browser with hosts, URLs, a site map, hosting networks and DNS
+          records, like the results on this website. The page is served from your own computer
+          only and stops when you press Ctrl-C; nothing is uploaded.
+        </p>
+      </Section>
+
       <Section title="Modes">
         <Table
           rows={[
@@ -98,6 +108,7 @@ export default function CliPage() {
             ["result.json", "Everything the scan found, with where each item came from."],
             ["hosts.csv", "One row per host: whether it resolves and answers, addresses, network, certificate."],
             ["urls.csv", "One row per URL: type, status, sources, when it was first archived."],
+            ["scan/", "The scan's database, which webscanner view reads."],
           ]}
         />
       </Section>

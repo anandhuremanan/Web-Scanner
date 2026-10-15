@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>webscanner</title>
+<style>
+  :root { --bg:#fafaf9; --surface:#fff; --subtle:#f4f4f3; --border:#e5e5e3; --fg:#1c1c1a; --muted:#6b6b66;
+          --accent:#2f5bd3; --ok:#1f7a4a; --warn:#a15c07; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111110; --surface:#181817; --subtle:#20201e; --border:#2d2d2a; --fg:#ececea; --muted:#9a9a94;
+            --accent:#7d9df0; --ok:#5fbf8a; --warn:#e0a54b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:1000px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font:600 22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin:0 0 4px; word-break:break-all; }
+  h2 { font-size:15px; margin:20px 0 8px; }
+  .muted { color:var(--muted); } .small { font-size:12px; } .ok { color:var(--ok); } .warn { color:var(--warn); }
+  .mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  a { color:var(--accent); }
+  nav { display:flex; gap:4px; border-bottom:1px solid var(--border); margin:20px 0 16px; overflow-x:auto; }
+  nav button { background:none; border:0; border-bottom:2px solid transparent; color:var(--muted); padding:8px 12px;
+               font:inherit; cursor:pointer; white-space:nowrap; }
+  nav button[aria-current="page"] { color:var(--fg); border-color:var(--fg); font-weight:600; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  input, select { background:var(--surface); color:var(--fg); border:1px solid var(--border); border-radius:6px;
+                  padding:7px 10px; font:inherit; }
+  input[type=search] { flex:1; min-width:200px; max-width:360px; }
+  ul.list { list-style:none; margin:0; padding:0; border:1px solid var(--border); border-radius:6px; background:var(--surface); }
+  ul.list > li { border-top:1px solid var(--border); }
+  ul.list > li:first-child { border-top:0; }
+  .row { display:grid; grid-template-columns:3.2rem minmax(0,1fr) auto; gap:4px 12px; align-items:center; width:100%;
+         padding:7px 12px; background:none; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+  .row:hover { background:var(--subtle); }
+  .trunc { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .detail { padding:10px 12px 14px; background:var(--subtle); display:grid; grid-template-columns:8rem minmax(0,1fr); gap:4px 12px; }
+  .detail dt { color:var(--muted); } .detail dd { margin:0; word-break:break-all; }
+  .tag { display:inline-block; border:1px solid var(--border); border-radius:4px; padding:0 5px; font-size:11px;
+         color:var(--muted); background:none; font-family:inherit; margin:0 4px 2px 0; }
+  .more { margin-top:10px; background:none; border:0; color:var(--accent); font:inherit; cursor:pointer; padding:0; }
+  .tree { font-size:13px; } .tree ul { list-style:none; margin:0 0 0 8px; padding-left:12px; border-left:1px solid var(--border); }
+  .tree li { margin:2px 0; } .tree .node { background:none; border:0; color:inherit; font:inherit; cursor:pointer; padding:0; }
+  .tree .arrow { display:inline-block; width:1em; color:var(--muted); }
+  .card { border:1px solid var(--border); border-radius:6px; background:var(--surface); padding:10px 12px; margin-bottom:8px; }
+  .meter { height:4px; background:var(--subtle); border-radius:2px; overflow:hidden; margin-top:6px; }
+  .meter span { display:block; height:100%; background:var(--accent); }
+  .error { color:var(--warn); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="domain">Loading…</h1>
+    <div id="counts"></div>
+    <div id="meta" class="muted small"></div>
+    <div class="small" style="margin-top:6px"><a id="csv" href="#" download>Download URLs (CSV)</a></div>
+  </header>
+  <nav id="tabs" aria-label="Result sections"></nav>
+  <section id="view"></section>
+</main>
+<script>
+"use strict";
+const SCAN = "{{SCAN_ID}}";
+const api = (part, params = {}) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== ""));
+  return fetch(`/api/scans/${SCAN}/${part}${q.toString() ? "?" + q : ""}`).then(async (r) => {
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.error || `request failed (${r.status})`);
+    return body;
+  });
+};
+
+// el builds an element; strings become text nodes, so nothing from the
+// result is ever parsed as HTML.
+function el(tag, attrs = {}, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat()) if (c !== undefined && c !== null && c !== false) n.append(c instanceof Node ? c : String(c));
+  return n;
+}
+const num = (n) => (n ?? 0).toLocaleString();
+const plural = (n, one, many = one + "s") => `${num(n)} ${n === 1 ? one : many}`;
+const tone = (s) => (!s ? "muted" : s < 300 ? "ok" : s < 400 ? "" : "warn");
+const tags = (list) => (list || []).map((s) => el("span", { class: "tag" }, s));
+const date = (s) => (s ? new Date(s).toLocaleDateString() : "");
+
+let summary;
+
+// paged renders a list fetched a page at a time, with "Show more".
+function paged(container, load, render, empty) {
+  const list = el("ul", { class: "list" });
+  const more = el("button", { class: "more", type: "button" }, "Show more");
+  const msg = el("p", { class: "muted" });
+  let next = "", busy = false;
+  async function page() {
+    if (busy) return;
+    busy = true; more.disabled = true;
+    try {
+      const res = await load(next);
+      const items = res.hosts || res.urls || [];
+      items.forEach((it) => list.append(render(it)));
+      next = res.next || "";
+      more.style.display = next ? "" : "none";
+      msg.textContent = list.children.length === 0 ? empty : "";
+    } catch (e) {
+      msg.textContent = "Could not load: " + e.message; msg.className = "error";
+    }
+    busy = false; more.disabled = false;
+  }
+  more.addEventListener("click", page);
+  container.replaceChildren(list, msg, more);
+  page();
+}
+
+// toggle opens or closes a detail panel under a list row.
+function toggle(li, build) {
+  const open = li.querySelector(".detail");
+  if (open) { open.remove(); return; }
+  li.append(build());
+}
+
+function detailList(rows) {
+  return el("dl", { class: "detail" }, rows.filter(Boolean).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)]));
+}
+
+function hostLabel(h) {
+  const d = h.dns, p = h.http;
+  if (p && p.reachable) return [el("span", { class: tone(p.status) }, `${p.status} · ${(p.scheme || "").toUpperCase()}`)];
+  if (d && d.danglingAlias) return [el("span", { class: "warn" }, "alias to missing name")];
+  if (d && d.resolved) return [el("span", { class: "muted" }, "resolves")];
+  if (d && !d.resolved && !d.skipped) return [el("span", { class: "muted" }, "does not resolve")];
+  return [el("span", { class: "muted" }, "not checked")];
+}
+
+function hostDetail(h) {
+  const d = h.dns || {}, p = h.http || {}, c = p.certificate;
+  return detailList([
+    ["Found through", tags(h.sources)],
+    d.addresses && ["Addresses", el("span", { class: "mono" }, d.addresses.join(", "))],
+    d.cname && ["Alias of", el("span", { class: "mono" }, d.cname + (d.danglingAlias ? " (does not exist)" : ""))],
+    d.networks && d.networks.length && ["Served from", d.networks.map((n) => el("div", {}, `${n.name || "AS" + n.asn} (AS${n.asn})${n.country ? " · " + n.country : ""}`))],
+    d.error && !d.resolved && ["DNS", d.error],
+    p.reachable && ["HTTP", el("span", { class: "mono" }, `${p.status} ${p.url || ""}`)],
+    p.redirect && ["Redirects to", el("span", { class: "mono" }, p.redirect)],
+    p.title && ["Title", p.title],
+    p.server && ["Server", el("span", { class: "mono" }, p.server)],
+    c && ["Certificate", `${c.issuer || "Unknown issuer"}${c.subject ? " for " + c.subject : ""}, valid until ${date(c.notAfter)}`],
+    h.counts && ["URLs", num(h.counts.urls)],
+  ]);
+}
+
+function urlDetail(u) {
+  return detailList([
+    ["URL", el("a", { href: u.url, target: "_blank", rel: "noopener noreferrer nofollow", class: "mono" }, u.url)],
+    ["Status", u.status ? el("span", { class: tone(u.status) }, String(u.status)) : (u.error ? "Request failed: " + u.error : "Not requested by the scanner")],
+    ["Type", `${u.type}${u.assetKind ? " · " + u.assetKind : ""}`],
+    u.typeEvidence && ["Why", u.typeEvidence],
+    u.contentType && ["Content type", el("span", { class: "mono" }, u.contentType)],
+    u.title && ["Title", u.title],
+    u.redirect && ["Redirects to", el("span", { class: "mono" }, u.redirect)],
+    u.archived && ["Web archive", `First archived ${date(u.archived.firstSeen)}${u.archived.contentType ? " as " + u.archived.contentType : ""} (may no longer exist)`],
+    ["Found through", tags(u.sources)],
+    u.discoveredFrom && u.discoveredFrom.length && ["Referenced on", u.discoveredFrom.map((f) => el("div", { class: "mono small" }, f))],
+  ]);
+}
+
+function urlRow(u) {
+  const li = el("li");
+  li.append(el("button", { class: "row", type: "button", onclick: () => toggle(li, () => urlDetail(u)) },
+    el("span", { class: "mono " + tone(u.status) }, u.status || "—"),
+    el("span", { class: "mono trunc" }, el("span", { class: "muted" }, u.hostname), u.url.slice(u.url.indexOf(u.hostname) + u.hostname.length)),
+    el("span", { class: "small muted" }, u.assetKind || u.type)));
+  return li;
+}
+
+function searchBox(placeholder, onSearch) {
+  let timer;
+  return el("input", { type: "search", placeholder, oninput: (e) => { clearTimeout(timer); timer = setTimeout(() => onSearch(e.target.value.trim()), 300); } });
+}
+
+const views = {
+  hosts(v) {
+    const out = el("div");
+    const show = (q) => paged(out, (after) => api("hosts", { q, after }), (h) => {
+      const li = el("li");
+      li.append(el("button", { class: "row", type: "button", style: "grid-template-columns:minmax(0,1fr) auto auto", onclick: () => toggle(li, () => hostDetail(h)) },
+        el("span", { class: "mono trunc" }, h.hostname),
+        el("span", { class: "small mono" }, hostLabel(h)),
+        el("span", { class: "small muted" }, h.counts && h.counts.urls ? plural(h.counts.urls, "URL") : "")));
+      return li;
+    }, "No hosts match.");
+    v.replaceChildren(el("div", { class: "bar" }, searchBox(`Search ${num(summary.counts.hosts)} hosts`, show)), out);
+    show("");
+  },
+
+  urls(v) {
+    const out = el("div");
+    let q = "", type = "";
+    const show = () => paged(out, (after) => api("urls", { q, type, after }), urlRow, "No URLs match.");
+    const select = el("select", { onchange: (e) => { type = e.target.value; show(); } },
+      [["", "All types"], ["page,unknown", "Pages"], ["api", "API-like"], ["asset", "Assets"]].map(([val, label]) => el("option", { value: val }, label)));
+    v.replaceChildren(el("div", { class: "bar" }, searchBox(`Search ${num(summary.counts.urls)} URLs`, (s) => { q = s; show(); }), select), out);
+    show();
+  },
+
+  map(v) {
+    const pick = el("select");
+    const box = el("div", { class: "tree" });
+    v.replaceChildren(el("div", { class: "bar" }, pick, el("label", { class: "small muted" }, el("input", { type: "checkbox", id: "assets" }), " include assets")), box);
+    const assets = () => v.querySelector("#assets").checked;
+    const load = () => { box.replaceChildren(); if (pick.value) level(box, pick.value, "", true); };
+    pick.addEventListener("change", load);
+    v.querySelector("#assets").addEventListener("change", load);
+    api("hosts", { limit: 500 }).then((res) => {
+      const withUrls = res.hosts.filter((h) => h.counts && h.counts.urls > 0);
+      if (!withUrls.length) { box.textContent = "No host has discovered URLs."; return; }
+      withUrls.forEach((h) => pick.append(el("option", { value: h.hostname }, `${h.hostname} (${num(h.counts.urls)})`)));
+      load();
+    });
+
+    function level(container, host, path, root) {
+      const ul = el("ul", root ? { style: "border:0;margin:0;padding:0" } : {});
+      container.append(ul);
+      let next = "";
+      const more = el("button", { class: "more small", type: "button", style: "display:none" }, "Show more");
+      more.addEventListener("click", page);
+      container.append(more);
+      async function page() {
+        const t = await api("tree", { host, path, after: next, assets: assets() ? "true" : "" }).catch((e) => ({ error: e.message }));
+        if (t.error) { ul.append(el("li", { class: "error" }, t.error)); return; }
+        if (root && !next) ul.append(el("li", {}, nodeLine("/", t.urls, root ? t.total : undefined)));
+        t.children.forEach((c) => {
+          const li = el("li");
+          const line = nodeLine(c.name, c.urls, c.hasChildren ? c.total : undefined);
+          if (c.hasChildren) {
+            const arrow = el("span", { class: "arrow" }, "▸");
+            line.prepend(arrow);
+            let sub;
+            line.querySelector(".node").addEventListener("click", () => {
+              if (sub) { sub.remove(); sub = null; arrow.textContent = "▸"; return; }
+              sub = el("div"); li.append(sub); arrow.textContent = "▾"; level(sub, host, c.path, false);
+            });
+          } else line.prepend(el("span", { class: "arrow" }));
+          li.append(line);
+          ul.append(li);
+        });
+        next = t.next || "";
+        more.style.display = next ? "" : "none";
+      }
+      page();
+    }
+
+    function nodeLine(name, urls, total) {
+      const div = el("div");
+      div.append(el("button", { class: "node mono", type: "button" }, name), total !== undefined ? el("span", { class: "small muted" }, ` (${num(total)})`) : "");
+      (urls || []).forEach((u) => {
+        const chip = el("button", { class: "tag", type: "button", title: u.url, style: "cursor:pointer;margin-left:6px" }, `${u.status || "—"} ${u.type}`);
+        chip.addEventListener("click", () => { const o = div.querySelector(".detail"); if (o) o.remove(); else div.append(urlDetail(u)); });
+        div.append(chip);
+      });
+      return div;
+    }
+  },
+
+  hosting(v) {
+    const ps = summary.providers || [];
+    if (!ps.length) { v.replaceChildren(el("p", { class: "muted" }, "No hosting information.")); return; }
+    const most = ps[0].hosts;
+    v.replaceChildren(el("p", { class: "muted small" }, "The network each host's address belongs to. A host behind a CDN shows the CDN."),
+      ...ps.map((p) => el("div", { class: "card" },
+        el("div", {}, el("b", {}, `${p.name || "AS" + p.asn} (AS${p.asn})`), el("span", { class: "muted small" }, ` ${p.country || ""} · ${plural(p.hosts, "host")}`)),
+        el("div", { class: "meter" }, el("span", { style: `width:${Math.max((100 * p.hosts) / most, 2)}%` })))));
+  },
+
+  dns(v) {
+    const d = summary.dns;
+    if (!d) { v.replaceChildren(el("p", { class: "muted" }, "No DNS records were read.")); return; }
+    const block = (title, items) => [el("h2", {}, title), items && items.length ? el("ul", { class: "list" }, items.map((t) => el("li", { class: "mono small", style: "padding:6px 12px;word-break:break-all" }, t))) : el("p", { class: "muted" }, "None.")];
+    const m = d.mail || {};
+    v.replaceChildren(
+      ...(d.services && d.services.length ? [el("h2", {}, "Services these records reveal"), ...d.services.map((s) => el("div", { class: "card" }, el("b", {}, s.name), el("div", { class: "mono small muted" }, s.evidence)))] : []),
+      el("h2", {}, "Mail security"),
+      ...[["SPF", m.spf], ["DMARC", m.dmarc], ["MTA-STS", m.mtaSts], ["TLS reporting", m.tlsRpt]].map(([name, recs]) =>
+        el("div", { class: "card" }, el("b", {}, name), " ", el("span", { class: recs && recs.length ? "ok small" : "muted small" }, recs && recs.length ? "published" : "not published"),
+          (recs || []).map((r) => el("div", { class: "mono small" }, r)))),
+      ...block("Mail servers (MX)", (d.mx || []).map((x) => `${x.priority}  ${x.host}`)),
+      ...block("Name servers (NS)", d.ns),
+      ...block("Text records (TXT)", d.txt));
+  },
+};
+
+const tabNames = [["hosts", "Hosts"], ["urls", "URLs"], ["map", "Map"], ["hosting", "Hosting"], ["dns", "DNS"]];
+function show(tab) {
+  if (!views[tab]) tab = "hosts";
+  history.replaceState(null, "", "#" + tab);
+  document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.tab === tab ? "page" : "false"));
+  views[tab](document.getElementById("view"));
+}
+
+api("summary").then((s) => {
+  summary = s;
+  const c = s.counts;
+  document.title = `${s.domain.canonical} · webscanner`;
+  document.getElementById("domain").textContent = s.domain.canonical;
+  document.getElementById("counts").textContent =
+    `${plural(c.hosts, "host")} (${num(c.hostsReachable)} reachable) · ${plural(c.urls, "URL")} · ${plural(c.apis, "API-like endpoint")} · ${plural(c.assets, "asset")}`;
+  const mode = { passive: "Passive", light: "Standard", full: "Full crawl" }[s.domain.mode] || s.domain.mode;
+  document.getElementById("meta").textContent = `${mode} scan · ${new Date(s.domain.scannedAt).toLocaleString()}`;
+  document.getElementById("csv").href = `/api/scans/${SCAN}/export`;
+  const nav = document.getElementById("tabs");
+  tabNames.forEach(([id, label]) => nav.append(el("button", { type: "button", "data-tab": id, onclick: () => show(id) }, label)));
+  show(location.hash.slice(1));
+}).catch((e) => {
+  document.getElementById("domain").textContent = "Could not load the result";
+  document.getElementById("counts").textContent = e.message;
+});
+</script>
+</body>
+</html>
