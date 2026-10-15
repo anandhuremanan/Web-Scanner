@@ -29,8 +29,8 @@ describe("SiteFooter", () => {
     render(<SiteFooter />);
     const href = (name: string) => screen.getByRole("link", { name }).getAttribute("href");
     expect(href("Anandhu Remanan")).toBe("https://imanandhu.in");
-    expect(href("Source on GitHub")).toBe("https://github.com/anandhuremanan/website_mapper");
-    expect(href("MIT License")).toBe("https://github.com/anandhuremanan/website_mapper/blob/main/LICENSE");
+    expect(href("Source on GitHub")).toBe("https://github.com/anandhuremanan/Web-Scanner");
+    expect(href("MIT License")).toBe("https://github.com/anandhuremanan/Web-Scanner/blob/main/LICENSE");
     expect(href("Terms & Privacy")).toBe("/terms");
     // Links that open another site do so safely.
     for (const link of screen.getAllByRole("link")) {

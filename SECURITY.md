@@ -4,7 +4,7 @@
 
 Please report security problems privately, not in public issues:
 
-- use GitHub's **[Report a vulnerability](https://github.com/anandhuremanan/website_mapper/security/advisories/new)**
+- use GitHub's **[Report a vulnerability](https://github.com/anandhuremanan/Web-Scanner/security/advisories/new)**
   form (Security tab → Advisories), or
 - contact the maintainer through [imanandhu.in](https://imanandhu.in).
 

@@ -1,6 +1,6 @@
 # Installs the latest webscanner command-line tool on Windows.
 #
-#   irm https://raw.githubusercontent.com/anandhuremanan/website_mapper/main/cli/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.ps1 | iex
 #
 # Settings (optional, as environment variables):
 #   WEBSCANNER_VERSION   a version such as 1.0.0 (default: the latest)
@@ -9,7 +9,7 @@
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$repo = 'anandhuremanan/website_mapper'
+$repo = 'anandhuremanan/Web-Scanner'
 
 function Fail($message) {
     Write-Host "webscanner install: $message" -ForegroundColor Red
