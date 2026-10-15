@@ -21,7 +21,19 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.ps1 | iex
 ```
 
-Both download the latest release for your system from GitHub, check it
+Homebrew (macOS and Linux):
+
+```sh
+brew install anandhuremanan/tap/webscanner
+```
+
+Scoop (Windows):
+
+```powershell
+scoop install https://github.com/anandhuremanan/Web-Scanner/releases/latest/download/webscanner.json
+```
+
+The one-line installers above both download the latest release for your system from GitHub, check it
 against the published checksums, and install it (Linux and macOS: in
 `/usr/local/bin` if writable, otherwise `~/.local/bin`; Windows: in
 `%LOCALAPPDATA%\Programs\webscanner`, added to your PATH). Set
@@ -93,6 +105,10 @@ Windows (Intel and ARM) and publishes a GitHub release with the files and a
 git tag cli-v1.0.0
 git push origin cli-v1.0.0
 ```
+
+Each release also gets a Homebrew formula and a Scoop manifest
+([release/manifests.sh](release/manifests.sh)). The formula is published to
+the `homebrew-tap` repository when the `HOMEBREW_TAP_TOKEN` secret is set.
 
 ## Build
 

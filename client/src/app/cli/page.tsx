@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 const repo = sourceUrl.replace("https://github.com/", "");
 const raw = `https://raw.githubusercontent.com/${repo}/main/cli`;
 const releases = `${sourceUrl}/releases`;
+const owner = repo.split("/")[0];
 
 export default function CliPage() {
   return (
@@ -35,6 +36,9 @@ export default function CliPage() {
         <Command label="install on Linux and macOS">{`curl -fsSL ${raw}/install.sh | sh`}</Command>
         <h3 className="pt-2 font-medium">Windows (PowerShell)</h3>
         <Command label="install on Windows">{`irm ${raw}/install.ps1 | iex`}</Command>
+        <h3 className="pt-2 font-medium">With a package manager</h3>
+        <Command label="install with Homebrew">{`brew install ${owner}/tap/webscanner`}</Command>
+        <Command label="install with Scoop">{`scoop install ${releases}/latest/download/webscanner.json`}</Command>
         <p className="text-muted">
           The installer downloads the latest version for your system, checks it against the
           published checksums, and adds <span className="font-mono">webscanner</span> to your
