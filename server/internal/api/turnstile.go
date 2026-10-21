@@ -33,6 +33,10 @@ type Turnstile struct {
 	URL string
 	// Client makes the request (nil: a client with a 5 s timeout).
 	Client *http.Client
+	// Hostnames, if set, are the only sites whose tokens are accepted.
+	// Cloudflare reports which hostname a token was issued on; checking it
+	// stops a token solved on another site with the same key being reused.
+	Hostnames []string
 }
 
 const turnstileVerifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -69,8 +73,9 @@ func (t Turnstile) Verify(ctx context.Context, token, visitor string) (bool, err
 	}
 	defer resp.Body.Close()
 	var out struct {
-		Success bool     `json:"success"`
-		Errors  []string `json:"error-codes"`
+		Success  bool     `json:"success"`
+		Errors   []string `json:"error-codes"`
+		Hostname string   `json:"hostname"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&out); err != nil {
 		return false, fmt.Errorf("unexpected answer from the verification service (HTTP %d)", resp.StatusCode)
@@ -83,6 +88,14 @@ func (t Turnstile) Verify(ctx context.Context, token, visitor string) (bool, err
 				return false, errors.New("the verification secret key is not accepted")
 			}
 		}
+	}
+	if out.Success && len(t.Hostnames) > 0 {
+		for _, h := range t.Hostnames {
+			if strings.EqualFold(h, out.Hostname) {
+				return true, nil
+			}
+		}
+		return false, nil
 	}
 	return out.Success, nil
 }

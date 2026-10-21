@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs the latest webscanner command-line tool on Linux or macOS.
 #
-#   curl -fsSL https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.sh | sh
+#   curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.sh | sh
 #
 # Settings (optional, as environment variables):
 #   WEBSCANNER_VERSION   a version such as 1.0.0 (default: the latest)
@@ -38,7 +38,7 @@ if [ -n "${WEBSCANNER_VERSION:-}" ]; then
 	version="${WEBSCANNER_VERSION#v}"
 else
 	# The newest release whose tag starts with cli-v.
-	tag="$(curl -fsSL "https://api.github.com/repos/$repo/releases?per_page=30" |
+	tag="$(curl --proto '=https' --tlsv1.2 -fsSL "https://api.github.com/repos/$repo/releases?per_page=30" |
 		grep -o '"tag_name": *"cli-v[^"]*"' | head -n 1 | sed 's/.*"cli-v//; s/"$//')" ||
 		fail "could not look up the latest release"
 	[ -n "$tag" ] || fail "no release of the command-line tool has been published yet"
@@ -51,8 +51,8 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT INT TERM
 
 echo "Downloading webscanner $version for $os/$arch..."
-curl -fsSL -o "$work/$name" "$base/$name" || fail "could not download $base/$name"
-curl -fsSL -o "$work/checksums.txt" "$base/checksums.txt" || fail "could not download the checksums"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$work/$name" "$base/$name" || fail "could not download $base/$name"
+curl --proto '=https' --tlsv1.2 -fsSL -o "$work/checksums.txt" "$base/checksums.txt" || fail "could not download the checksums"
 
 # Check the download against the published checksum before running anything.
 expected="$(grep " $name\$" "$work/checksums.txt" | cut -d ' ' -f 1)"

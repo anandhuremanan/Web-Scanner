@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"sync"
 	"time"
@@ -74,6 +75,22 @@ func (a Access) visitor(r *http.Request) string {
 		return host
 	}
 	return r.RemoteAddr
+}
+
+// limitKey is what the start limit counts by. An IPv4 address is one
+// visitor. An IPv6 visitor usually has a whole /64 network (billions of
+// addresses) and can pick a new address for every request, so IPv6
+// addresses are counted by their /64.
+func limitKey(visitor string) string {
+	ip, err := netip.ParseAddr(visitor)
+	if err != nil {
+		return visitor
+	}
+	ip = ip.Unmap().WithZone("")
+	if ip.Is4() {
+		return ip.String()
+	}
+	return netip.PrefixFrom(ip, 64).Masked().String()
 }
 
 // startLimiter counts the scans each visitor started within a window.

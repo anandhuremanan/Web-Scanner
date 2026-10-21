@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import posthog, { type CaptureResult } from "posthog-js";
 
 // Usage analytics (PostHog), to see how the tool is used: how many scans are
 // started, in which mode, and what people open afterwards.
@@ -47,12 +47,33 @@ export interface Events {
 
 let enabled = false;
 
+/** A result page's address with its scan ID. */
+const SCAN_PATH = /\/scans\/[^/?#\s]+/g;
+
+/**
+ * Removes scan IDs from an event before it is sent. Page views carry the
+ * page's address, and a result page's address holds the scan's ID, which
+ * leads to the scanned domain for anyone who opens it. Every string
+ * property is rewritten to the route itself: /scans/abc123 -> /scans/[id].
+ */
+export function withoutScanIds(event: CaptureResult | null): CaptureResult | null {
+  if (!event?.properties) return event;
+  for (const [key, value] of Object.entries(event.properties)) {
+    if (typeof value === "string" && value.includes("/scans/")) {
+      event.properties[key] = value.replace(SCAN_PATH, "/scans/[id]");
+    }
+  }
+  return event;
+}
+
 /** Starts analytics if a project key is configured. Safe to call again. */
 export function initAnalytics() {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
   if (enabled || !key || typeof window === "undefined") return;
   posthog.init(key, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+    // EU by default, as the privacy page says; NEXT_PUBLIC_POSTHOG_HOST
+    // overrides it for a project in another region.
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com",
     persistence: "memory",
     autocapture: false,
     capture_pageview: "history_change",
@@ -60,6 +81,7 @@ export function initAnalytics() {
     disable_session_recording: true,
     disable_surveys: true,
     person_profiles: "identified_only",
+    before_send: withoutScanIds,
   });
   enabled = true;
 }

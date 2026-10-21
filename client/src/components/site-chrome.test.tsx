@@ -28,7 +28,9 @@ describe("SiteFooter", () => {
   it("credits the author and links the source and license", () => {
     render(<SiteFooter />);
     const href = (name: string) => screen.getByRole("link", { name }).getAttribute("href");
-    expect(href("Anandhu Remanan")).toBe("https://imanandhu.in");
+    expect(screen.getByText("Made by Probably Fine Labs")).toBeTruthy();
+    // The credit is plain text: no link to a personal site.
+    expect(screen.queryByRole("link", { name: /Probably Fine Labs/ })).toBeNull();
     expect(href("Source on GitHub")).toBe("https://github.com/anandhuremanan/Web-Scanner");
     expect(href("MIT License")).toBe("https://github.com/anandhuremanan/Web-Scanner/blob/main/LICENSE");
     expect(href("Terms & Privacy")).toBe("/terms");

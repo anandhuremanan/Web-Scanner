@@ -33,6 +33,10 @@ func siteverify(t *testing.T) (*httptest.Server, *[]string) {
 		case token == "good" && !used[token]:
 			used[token] = true
 			out["success"] = true
+			out["hostname"] = "webscanner.example"
+		case token == "other-site":
+			out["success"] = true
+			out["hostname"] = "elsewhere.example"
 		case token == "good":
 			out["error-codes"] = []string{"timeout-or-duplicate"}
 		default:
@@ -136,5 +140,16 @@ func TestScansNeedAVerifiedVisitor(t *testing.T) {
 	// Reading results never needs a token.
 	if code, _, _ := send(t, "GET", srv.URL+"/api/scans/"+out["id"].(string), "", h); code != 200 {
 		t.Errorf("status = %d", code)
+	}
+}
+
+func TestTurnstileChecksTheHostname(t *testing.T) {
+	srv, _ := siteverify(t)
+	ts := api.Turnstile{Secret: "s3cret", URL: srv.URL, Hostnames: []string{"WebScanner.example"}}
+	if ok, err := ts.Verify(context.Background(), "good", ""); !ok || err != nil {
+		t.Errorf("token from our site = %v, %v", ok, err)
+	}
+	if ok, err := ts.Verify(context.Background(), "other-site", ""); ok || err != nil {
+		t.Errorf("token from another site = %v, %v", ok, err)
 	}
 }

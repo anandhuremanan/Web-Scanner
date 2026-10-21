@@ -113,7 +113,10 @@ func decode[T any](all []T, c int) T {
 // openDB opens a scan's database with one connection, so settings and
 // transactions apply to every statement.
 func openDB(path string, pragmas ...string) (*sql.DB, error) {
-	dsn := path + "?_pragma=busy_timeout(5000)"
+	// trusted_schema off: a database file cannot make SQLite run functions
+	// from its own triggers or views. Ours have none; a crafted file (one
+	// handed to the CLI's view command) could.
+	dsn := path + "?_pragma=busy_timeout(5000)&_pragma=trusted_schema(0)"
 	for _, p := range pragmas {
 		dsn += "&_pragma=" + p
 	}

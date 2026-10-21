@@ -152,12 +152,12 @@ func writeHostsCSV(ctx context.Context, w io.Writer, rd scan.ResultReader) error
 			}
 		}
 		if hp := h.HTTP; hp != nil && hp.Reachable {
-			row[8], row[9] = strconv.Itoa(hp.Status), plainCell(hp.Title)
+			row[8], row[9] = strconv.Itoa(hp.Status), hp.Title
 			if c := hp.Certificate; c != nil {
 				row[10], row[11] = c.Issuer, c.NotAfter.Format(time.DateOnly)
 			}
 		}
-		if err := cw.Write(row); err != nil {
+		if err := cw.Write(csvRow(row...)); err != nil {
 			return err
 		}
 	}
@@ -176,8 +176,8 @@ func writeURLsCSV(ctx context.Context, w io.Writer, rd scan.ResultReader) error 
 		if u.Archived != nil {
 			archived = u.Archived.FirstSeen.Format(time.DateOnly)
 		}
-		return cw.Write([]string{u.URL, u.Hostname, string(u.Type), string(u.AssetKind), string(u.State), status,
-			u.ContentType, plainCell(u.Title), joinSources(u.Sources), archived})
+		return cw.Write(csvRow(u.URL, u.Hostname, string(u.Type), string(u.AssetKind), string(u.State), status,
+			u.ContentType, u.Title, joinSources(u.Sources), archived))
 	})
 	cw.Flush()
 	if err == nil {
@@ -215,6 +215,15 @@ func joinSources[S ~string](sources []S) string {
 	return strings.Join(out, " ")
 }
 
+// csvRow guards every cell: a scanned site chooses more of them than the
+// title (a content type, a network name).
+func csvRow(cells ...string) []string {
+	for i, c := range cells {
+		cells[i] = plainCell(c)
+	}
+	return cells
+}
+
 // plainCell keeps a spreadsheet from running text taken from a web page as
 // a formula.
 func plainCell(s string) string {
@@ -225,7 +234,35 @@ func plainCell(s string) string {
 }
 
 // printSummary prints what the scan found, its notes, and where the files are.
+//
+// Much of it is text the scanned domain's owner chose (DNS records, error
+// messages quoting their servers), so it is passed through terminalSafe:
+// control characters could otherwise retitle the terminal, plant links or
+// rewrite lines already printed.
 func printSummary(w io.Writer, sc scan.Scan, res scan.Result, files []string) {
+	var b strings.Builder
+	writeSummary(&b, sc, res, files)
+	io.WriteString(w, terminalSafe(b.String()))
+}
+
+// terminalSafe replaces control characters, other than newlines and tabs,
+// with a visible \xNN.
+func terminalSafe(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		switch {
+		case r == '\n' || r == '\t':
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f || (r >= 0x80 && r <= 0x9f):
+			fmt.Fprintf(&b, "\\x%02x", r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func writeSummary(w io.Writer, sc scan.Scan, res scan.Result, files []string) {
 	c := res.Counts
 	fmt.Fprintln(w)
 	switch {

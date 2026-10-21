@@ -71,3 +71,38 @@ describe("analytics", () => {
     expect(() => track("scan_again", { mode: "full" })).not.toThrow();
   });
 });
+
+describe("withoutScanIds", () => {
+  it("removes scan IDs from every address an event carries", async () => {
+    const { withoutScanIds } = await import("./analytics");
+    const event = {
+      uuid: "u",
+      event: "$pageview",
+      properties: {
+        $current_url: "https://webscanner.example/scans/3f9c2a1b7d4e5f60?tab=map#x",
+        $pathname: "/scans/3f9c2a1b7d4e5f60",
+        $referrer: "https://webscanner.example/scans/aa11bb22cc33dd44",
+        $prev_pageview_pathname: "/",
+        mode: "light",
+        hosts: 12,
+      },
+    };
+    const out = withoutScanIds(event as never)!;
+    expect(out.properties).toEqual({
+      $current_url: "https://webscanner.example/scans/[id]?tab=map#x",
+      $pathname: "/scans/[id]",
+      $referrer: "https://webscanner.example/scans/[id]",
+      $prev_pageview_pathname: "/",
+      mode: "light",
+      hosts: 12,
+    });
+    expect(JSON.stringify(out)).not.toContain("3f9c2a1b7d4e5f60");
+  });
+
+  it("is installed when analytics starts", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_test");
+    const { initAnalytics, withoutScanIds } = await import("./analytics");
+    initAnalytics();
+    expect(posthog.init).toHaveBeenCalledWith("phc_test", expect.objectContaining({ before_send: withoutScanIds }));
+  });
+});

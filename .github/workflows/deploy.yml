@@ -27,10 +27,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -61,14 +63,18 @@ jobs:
   deploy:
     name: Build and Deploy
     needs: test
+    # Only main is deployed, also when the workflow is started by hand.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
@@ -95,6 +101,10 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
           VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          # The VPS's SSH host key, as `ssh-keyscan -p PORT HOST` prints it
+          # on a trusted machine. With it, a deploy refuses any server that
+          # cannot prove it is the VPS.
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
 
@@ -104,10 +114,17 @@ jobs:
           printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          ssh-keyscan \
-            -p "$VPS_SSH_PORT" \
-            -H "$VPS_HOST" \
-            >> ~/.ssh/known_hosts
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            printf 'StrictHostKeyChecking yes\n' > ~/.ssh/config
+          else
+            # Without the secret the key is taken on trust, as before.
+            echo "::warning::VPS_KNOWN_HOSTS is not set, so the VPS's host key is not verified. Add it as a repository secret."
+            ssh-keyscan \
+              -p "$VPS_SSH_PORT" \
+              -H "$VPS_HOST" \
+              >> ~/.ssh/known_hosts
+          fi
 
           chmod 644 ~/.ssh/known_hosts
 

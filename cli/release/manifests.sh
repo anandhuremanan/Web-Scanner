@@ -11,6 +11,19 @@ set -eu
 version="$1"
 repo="$2"
 dist="$3"
+
+# The version goes into a Ruby formula and a JSON manifest: accept only a
+# plain version number, so a crafted tag name cannot become code.
+case "$version" in
+*[!0-9A-Za-z.-]* | "" | .* | -*)
+	echo "manifests.sh: not a version: $version" >&2
+	exit 1
+	;;
+esac
+echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$' || {
+	echo "manifests.sh: not a version: $version" >&2
+	exit 1
+}
 base="https://github.com/$repo/releases/download/cli-v$version"
 
 sum() {

@@ -13,6 +13,10 @@ import (
 
 // Config is the complete server configuration.
 type Config struct {
+	// Host is the address to listen on; empty means every interface. Set it
+	// to 127.0.0.1 when a reverse proxy on the same machine is the only
+	// thing that should reach the server.
+	Host     string
 	Port     string
 	LogLevel slog.Level
 
@@ -29,6 +33,8 @@ type Config struct {
 	// TurnstileSecret, if set, makes starting a scan require a Cloudflare
 	// Turnstile token, which the web client gets from its widget.
 	TurnstileSecret string
+	// TurnstileHostnames, if set, are the only sites whose tokens count.
+	TurnstileHostnames []string
 	// StartLimit is how many scans one visitor may start per StartWindow
 	// (0: no limit).
 	StartLimit  int
@@ -165,12 +171,14 @@ func Load() (Config, error) {
 func LoadFrom(getenv func(string) string) (Config, error) {
 	p := parser{getenv: getenv}
 	cfg := Config{
+		Host:               p.str("SERVER_HOST", ""),
 		Port:               p.str("SERVER_PORT", "8080"),
 		LogLevel:           p.level("LOG_LEVEL", slog.LevelInfo),
 		MaxConcurrentScans: p.int("MAX_CONCURRENT_SCANS", 3, 1),
 		QueueSize:          p.int("SCAN_QUEUE_SIZE", 100, 1),
 		APIProxySecret:     p.str("API_PROXY_SECRET", ""),
 		TurnstileSecret:    p.str("TURNSTILE_SECRET_KEY", ""),
+		TurnstileHostnames: splitList(p.str("TURNSTILE_HOSTNAMES", "")),
 		StartLimit:         p.int("SCAN_START_LIMIT", 10, 0),
 		StartWindow:        p.duration("SCAN_START_WINDOW", 10*time.Minute),
 		Store: StoreConfig{
@@ -235,6 +243,17 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 
 // SubdomainSources are the providers SCAN_SUBDOMAIN_SOURCES may list.
 var SubdomainSources = []string{"crtsh", "certspotter", "anubis", "thc", "shodan"}
+
+// splitList splits a comma-separated value, dropping empty items.
+func splitList(v string) []string {
+	var out []string
+	for _, item := range strings.Split(v, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
+}
 
 type parser struct {
 	getenv func(string) string
