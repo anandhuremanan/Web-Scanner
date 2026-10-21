@@ -140,7 +140,7 @@ func (h *handler) createScan(w http.ResponseWriter, r *http.Request) {
 	sc, err := h.scans.Create(r.Context(), scan.CreateRequest{
 		Target: req.Target, Mode: scan.Mode(req.Mode), Fresh: req.Fresh,
 		BeforeStart: func() error {
-			if wait := h.starts.take(visitor); wait > 0 {
+			if wait := h.starts.take(limitKey(visitor)); wait > 0 {
 				return &startLimitError{wait}
 			}
 			return nil
@@ -525,8 +525,8 @@ func (h *handler) exportURLs(w http.ResponseWriter, r *http.Request) {
 			for i, s := range u.Sources {
 				sources[i] = string(s)
 			}
-			return cw.Write([]string{u.URL, u.Hostname, string(u.Type), string(u.AssetKind), string(u.State), status,
-				u.ContentType, plainCell(u.Title), strings.Join(sources, " "), archived})
+			return cw.Write(csvRow(u.URL, u.Hostname, string(u.Type), string(u.AssetKind), string(u.State), status,
+				u.ContentType, u.Title, strings.Join(sources, " "), archived))
 		})
 		cw.Flush()
 		if err == nil {
@@ -536,6 +536,16 @@ func (h *handler) exportURLs(w http.ResponseWriter, r *http.Request) {
 			h.log.Warn("sending export failed", "scan_id", r.PathValue("id"), "error", err)
 		}
 	})
+}
+
+// csvRow makes every cell safe to open in a spreadsheet. Any of them can
+// hold text a scanned site chose (a title, a content type), so all of them
+// are guarded, not just the obvious ones.
+func csvRow(cells ...string) []string {
+	for i, c := range cells {
+		cells[i] = plainCell(c)
+	}
+	return cells
 }
 
 // plainCell keeps a spreadsheet from running text taken from a web page

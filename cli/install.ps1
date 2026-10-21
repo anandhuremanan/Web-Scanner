@@ -9,11 +9,14 @@
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+# Windows PowerShell 5.1 may not offer TLS 1.2 by default; GitHub needs it.
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 $repo = 'anandhuremanan/Web-Scanner'
 
+# Stops the script with a message. It throws rather than calling exit: run
+# through "irm ... | iex", exit would close the user's PowerShell window.
 function Fail($message) {
-    Write-Host "webscanner install: $message" -ForegroundColor Red
-    exit 1
+    throw "webscanner install: $message"
 }
 
 switch ($env:PROCESSOR_ARCHITECTURE) {

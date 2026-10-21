@@ -324,6 +324,7 @@ var nonPublicPrefixes = func() []netip.Prefix {
 		"203.0.113.0/24",     // documentation (TEST-NET-3)
 		"240.0.0.0/4",        // reserved
 		"255.255.255.255/32", // broadcast
+		"::/96",              // IPv4-compatible (deprecated): ::127.0.0.1 embeds an IPv4 address
 		"64:ff9b::/96",       // NAT64: can embed any IPv4 address, including private ones
 		"64:ff9b:1::/48",     // local-use NAT64
 		"100::/64",           // discard-only

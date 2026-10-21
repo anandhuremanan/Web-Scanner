@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write # to create the release
+  id-token: write # to sign the build provenance
+  attestations: write # to publish it
 
 concurrency:
   group: release-cli-${{ github.ref }}
@@ -22,15 +24,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: cli/go.mod
-          cache-dependency-path: |
-            cli/go.sum
-            server/go.sum
+          # A release is built from nothing cached, so no earlier run can
+          # have planted anything in it.
+          cache: false
 
       - name: Test
         working-directory: cli
@@ -75,6 +79,16 @@ jobs:
           sh release/manifests.sh "$version" "$GITHUB_REPOSITORY" ../dist
           ls -l ../dist
 
+      # A signed statement, kept by GitHub, that these files were built by
+      # this workflow from this commit. Anyone can check a download with:
+      #   gh attestation verify <file> --repo <owner/repo>
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,7 +115,8 @@ jobs:
 
               scoop install https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/webscanner.json
 
-          Or download the file for your system below and check it against checksums.txt.
+          Or download the file for your system below and check it against checksums.txt,
+          or check where it was built: gh attestation verify <file> --repo ${GITHUB_REPOSITORY}
           Only scan domains you own or have permission to inspect.
           NOTES
           gh release create "$TAG" dist/* --title "webscanner ${version}" --notes-file notes.md

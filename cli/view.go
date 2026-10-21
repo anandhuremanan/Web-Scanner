@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -75,12 +76,17 @@ func runView(args []string, stderr io.Writer) int {
 
 // serveView serves the result in folder until ctx ends.
 func serveView(ctx context.Context, folder, addr string, open bool, stderr io.Writer) error {
+	if err := loopbackOnly(addr); err != nil {
+		return err
+	}
 	dir, id, err := findScan(folder)
 	if err != nil {
 		return err
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repo, err := store.Open(store.Options{Dir: dir, Log: log})
+	// Read-only: the folder may be any folder the user named, and nothing in
+	// it may be changed or removed (a stray .db file is not ours to delete).
+	repo, err := store.Open(store.Options{Dir: dir, ReadOnly: true, Log: log})
 	if err != nil {
 		return err
 	}
@@ -133,6 +139,22 @@ func findScan(folder string) (dir, id string, err error) {
 		return "", "", err
 	}
 	return "", "", fmt.Errorf("%s has no saved scan to show (results written before version 1.1, or with -no-files, cannot be shown)", folder)
+}
+
+// loopbackOnly refuses addresses other computers could reach: the viewer
+// has no password, and its results are for this computer only.
+func loopbackOnly(addr string) error {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return fmt.Errorf("-addr %q: %w", addr, err)
+	}
+	if host == "localhost" {
+		return nil
+	}
+	if ip, err := netip.ParseAddr(host); err == nil && ip.IsLoopback() {
+		return nil
+	}
+	return fmt.Errorf("-addr %q: the viewer serves this computer only; use 127.0.0.1 or localhost", addr)
 }
 
 // viewHandler serves the viewer page at / and the result API under /api/.

@@ -156,7 +156,11 @@ function hostDetail(h) {
 
 function urlDetail(u) {
   return detailList([
-    ["URL", el("a", { href: u.url, target: "_blank", rel: "noopener noreferrer nofollow", class: "mono" }, u.url)],
+    // Only web addresses become links: a result folder from someone else
+    // could hold any text in place of a URL.
+    ["URL", /^https?:\/\//i.test(u.url)
+      ? el("a", { href: u.url, target: "_blank", rel: "noopener noreferrer nofollow", class: "mono" }, u.url)
+      : el("span", { class: "mono" }, u.url)],
     ["Status", u.status ? el("span", { class: tone(u.status) }, String(u.status)) : (u.error ? "Request failed: " + u.error : "Not requested by the scanner")],
     ["Type", `${u.type}${u.assetKind ? " · " + u.assetKind : ""}`],
     u.typeEvidence && ["Why", u.typeEvidence],

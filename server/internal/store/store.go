@@ -37,7 +37,12 @@ type Options struct {
 	MaxAge time.Duration
 	// MinFreeBytes is the free disk space below which no scan is created.
 	MinFreeBytes int64
-	Log          *slog.Logger
+	// ReadOnly opens an existing folder only to read its results, as the
+	// CLI's view command does. Nothing in the folder is created, rewritten
+	// or deleted: files that are not readable scans are left alone, and no
+	// scan is removed for age or size.
+	ReadOnly bool
+	Log      *slog.Logger
 }
 
 // Store is a scan.Repository on disk.
@@ -95,8 +100,10 @@ func Open(opts Options) (*Store, error) {
 	if opts.Log == nil {
 		opts.Log = slog.Default()
 	}
-	if err := os.MkdirAll(opts.Dir, 0o750); err != nil {
-		return nil, fmt.Errorf("store: creating data directory: %w", err)
+	if !opts.ReadOnly {
+		if err := os.MkdirAll(opts.Dir, 0o750); err != nil {
+			return nil, fmt.Errorf("store: creating data directory: %w", err)
+		}
 	}
 	s := &Store{opts: opts, log: opts.Log, scans: make(map[string]*entry), stop: make(chan struct{}), done: make(chan struct{})}
 	if err := s.load(); err != nil {
@@ -130,11 +137,16 @@ func (s *Store) load() error {
 		path := s.path(id)
 		e, err := loadEntry(path)
 		if err != nil || e.scan.ID != id {
+			if s.opts.ReadOnly {
+				continue // not a scan of ours: someone else's file
+			}
 			s.log.Warn("removing unreadable scan database", "event", "store_file_dropped", "file", name, "error", err)
 			_ = removeDB(path)
 			continue
 		}
-		if !e.scan.Status.Finished() {
+		if !e.scan.Status.Finished() && s.opts.ReadOnly {
+			markInterrupted(&e.scan) // shown as interrupted; the file is left as it is
+		} else if !e.scan.Status.Finished() {
 			// The server stopped while this scan was queued or running.
 			interrupted++
 			markInterrupted(&e.scan)
@@ -216,6 +228,9 @@ func fileSize(path string) int64 {
 }
 
 func (s *Store) Create(_ context.Context, sc scan.Scan) error {
+	if s.opts.ReadOnly {
+		return errReadOnly
+	}
 	if !validID.MatchString(sc.ID) {
 		return fmt.Errorf("store: invalid scan ID %q", sc.ID)
 	}
@@ -286,6 +301,9 @@ func (s *Store) Update(_ context.Context, sc scan.Scan) error {
 }
 
 func (s *Store) OpenURLs(_ context.Context, id string) (scan.URLStore, error) {
+	if s.opts.ReadOnly {
+		return nil, errReadOnly
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
@@ -410,6 +428,9 @@ func (s *Store) OpenResult(ctx context.Context, id string) (scan.ResultReader, e
 // oldest first, never removing keep, a scan that is not finished, or one
 // still being written. Caller holds mu.
 func (s *Store) evictLocked(keep string) {
+	if s.opts.ReadOnly {
+		return
+	}
 	s.retryOrphansLocked()
 	finished := 0
 	for _, e := range s.scans {
@@ -510,4 +531,7 @@ func (s *Store) Stats() scan.StorageStats {
 	return st
 }
 
-var errClosed = errors.New("store: closed")
+var (
+	errClosed   = errors.New("store: closed")
+	errReadOnly = errors.New("store: opened read-only")
+)

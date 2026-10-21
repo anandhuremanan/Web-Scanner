@@ -134,14 +134,14 @@ func run() error {
 		StartWindow: cfg.StartWindow,
 	}
 	if cfg.TurnstileSecret != "" {
-		access.Verifier = api.Turnstile{Secret: cfg.TurnstileSecret}
+		access.Verifier = api.Turnstile{Secret: cfg.TurnstileSecret, Hostnames: cfg.TurnstileHostnames}
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	srv := &http.Server{
-		Addr:              ":" + cfg.Port,
+		Addr:              net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:           api.NewHandler(svc, log, access),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
