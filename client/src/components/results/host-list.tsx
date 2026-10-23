@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FoundThrough, SourceTags } from "@/components/source-list";
 import { getHosts } from "@/lib/api";
-import { daysUntil, hostStatus, networkLabel, plural, statusTone } from "@/lib/format";
+import { compactUrl, daysUntil, hostStatus, networkLabel, plural, statusTone } from "@/lib/format";
 import type { Certificate, Host, UrlType } from "@/lib/types";
 import { useDebounced, usePages } from "@/lib/use-pages";
 import { ListFooter, UrlList } from "./url-list";
@@ -146,7 +146,7 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm">
+      <p className="text-sm [overflow-wrap:anywhere]">
         <span className={st.tone}>{st.icon}</span> {st.detail}
       </p>
 
@@ -215,11 +215,17 @@ export function HostDetail({ scanId, host }: { scanId: string; host: Host }) {
               </span>
               {http.redirect && (
                 <span className="block break-all text-muted">
-                  Redirects to <span className="font-mono">{http.redirect}</span>
+                  Redirects to{" "}
+                  <span className="font-mono" title={http.redirect}>
+                    {compactUrl(http.redirect)}
+                  </span>
                   {http.finalUrl && http.finalUrl !== http.redirect && (
                     <>
                       {" "}
-                      → ends at <span className="font-mono">{http.finalUrl}</span>
+                      → ends at{" "}
+                      <span className="font-mono" title={http.finalUrl}>
+                        {compactUrl(http.finalUrl)}
+                      </span>
                     </>
                   )}
                   {http.finalStatus ? ` (${http.finalStatus})` : ""}

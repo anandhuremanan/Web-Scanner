@@ -1,5 +1,5 @@
 import { FoundThrough } from "@/components/source-list";
-import { assetKindLabels, statusTone, typeLabels } from "@/lib/format";
+import { assetKindLabels, compactUrl, statusTone, typeLabels } from "@/lib/format";
 import type { DiscoveredUrl } from "@/lib/types";
 
 export function UrlDetail({ url }: { url: DiscoveredUrl }) {
@@ -63,7 +63,9 @@ export function UrlDetail({ url }: { url: DiscoveredUrl }) {
       )}
       {url.redirect && (
         <Row label="Redirects to">
-          <span className="break-all font-mono">{url.redirect}</span>
+          <span className="break-all font-mono" title={url.redirect}>
+            {compactUrl(url.redirect)}
+          </span>
         </Row>
       )}
       {url.title && <Row label="Title">{url.title}</Row>}
