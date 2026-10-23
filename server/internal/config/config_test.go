@@ -117,3 +117,23 @@ func TestSubdomainSourcesAndDNSServers(t *testing.T) {
 		}
 	}
 }
+
+// A hosting platform (the deploy panel) sets PORT; SERVER_PORT still wins.
+func TestPortFallback(t *testing.T) {
+	for _, c := range []struct {
+		env  map[string]string
+		want string
+	}{
+		{map[string]string{"PORT": "9312"}, "9312"},
+		{map[string]string{"PORT": "9312", "SERVER_PORT": "9200"}, "9200"},
+		{nil, "8080"},
+	} {
+		cfg, err := LoadFrom(env(c.env))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Port != c.want {
+			t.Errorf("env %v: Port = %q, want %q", c.env, cfg.Port, c.want)
+		}
+	}
+}
