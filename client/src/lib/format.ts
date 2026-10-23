@@ -75,6 +75,23 @@ export function shortUrl(url: string): string {
   return url.replace(/^https?:\/\//, "");
 }
 
+/**
+ * Shortens a URL for display: a long query (a login page's token, say) is
+ * cut to "?…", and a long path is cut in the middle. The full URL belongs
+ * in a title for hovering.
+ */
+export function compactUrl(url: string, max = 120): string {
+  if (url.length <= max) return url;
+  const q = url.search(/[?#]/);
+  let base = q >= 0 ? url.slice(0, q) : url;
+  const tail = q >= 0 ? url[q] + "…" : "";
+  if (base.length + tail.length > max) {
+    const keep = Math.max(20, max - tail.length - 1);
+    base = base.slice(0, Math.ceil(keep * 0.6)) + "…" + base.slice(base.length - Math.floor(keep * 0.4));
+  }
+  return base + tail;
+}
+
 export interface HostStatus {
   icon: string;
   tone: string;
@@ -89,7 +106,7 @@ export function hostStatus(h: Host): HostStatus {
   const { dns, http } = h;
   if (h.state === "reachable" && http) {
     const scheme = http.scheme?.toUpperCase() ?? "";
-    const redirect = http.redirect ? ` → ${shortUrl(http.redirect)}` : "";
+    const redirect = http.redirect ? ` → ${shortUrl(compactUrl(http.redirect, 80))}` : "";
     return {
       icon: "✓",
       tone: "text-ok",

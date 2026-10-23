@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysUntil, hostStatus } from "./format";
+import { compactUrl, daysUntil, hostStatus } from "./format";
 import type { Host } from "./types";
 
 function host(partial: Partial<Host>): Host {
@@ -76,5 +76,23 @@ describe("daysUntil", () => {
     expect(daysUntil("2026-10-22T12:00:00Z", now)).toBe(10);
     expect(daysUntil("2026-10-12T18:00:00Z", now)).toBe(0);
     expect(daysUntil("2026-10-10T12:00:00Z", now)).toBe(-2);
+  });
+});
+
+describe("compactUrl", () => {
+  it("leaves short URLs alone", () => {
+    expect(compactUrl("https://deploy.example.com/")).toBe("https://deploy.example.com/");
+  });
+  it("cuts a long query to ?…", () => {
+    const login =
+      "https://team.cloudflareaccess.com/cdn-cgi/access/login/deploy.example.com?kid=" + "a".repeat(900);
+    expect(compactUrl(login)).toBe("https://team.cloudflareaccess.com/cdn-cgi/access/login/deploy.example.com?…");
+  });
+  it("cuts a long path in the middle and stays within the limit", () => {
+    const out = compactUrl("https://example.com/" + "segment/".repeat(40) + "end", 60);
+    expect(out.length).toBeLessThanOrEqual(60);
+    expect(out).toContain("…");
+    expect(out.startsWith("https://example.com/")).toBe(true);
+    expect(out.endsWith("end")).toBe(true);
   });
 });
