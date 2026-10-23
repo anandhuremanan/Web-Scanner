@@ -82,9 +82,10 @@ run.
 - [server/deploy/websitemapper.service](server/deploy/websitemapper.service)
   is a systemd unit with hard memory and CPU limits, so the scanner can never
   starve other services.
-- [.github/workflows/deploy.yml](.github/workflows/deploy.yml) tests, builds
-  and deploys the API over SSH on pushes to `main`. It needs the repository
-  secrets `VPS_HOST`, `VPS_SSH_PORT`, `VPS_USER` and `VPS_DEPLOY_KEY`.
+- [.github/workflows/deploy-panel.yml](.github/workflows/deploy-panel.yml)
+  tests, builds and deploys the API on pushes to `main` through a deploy
+  panel on the server. It needs no secrets: GitHub signs a token that proves
+  the repository, branch and workflow, and the panel accepts only this file.
 - The web client (`client/`) is built and deployed by Vercel.
 
 The browser only ever talks to the web client, which forwards `/api/*` to the
