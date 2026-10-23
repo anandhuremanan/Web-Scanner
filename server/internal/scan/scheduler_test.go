@@ -475,7 +475,10 @@ func TestGlobalWaitIsReported(t *testing.T) {
 	time.Sleep(1100 * time.Millisecond)
 	hold()
 	sc := waitStatus(t, svc, a.ID, scan.StatusCompleted)
-	if u := sc.Resources.Pools["http"]; !hasLimit(sc.Limits, scan.LimitGlobalResource) || u.Delayed != 1 || u.AvgWaitMs < 1000 {
+	// The scan asks for capacity a moment after it is created, so its wait
+	// is a little under the 1.1 s hold (951 ms on a busy CI runner). 500 ms
+	// is still well past the 250 ms at which a wait is reported.
+	if u := sc.Resources.Pools["http"]; !hasLimit(sc.Limits, scan.LimitGlobalResource) || u.Delayed != 1 || u.AvgWaitMs < 500 {
 		t.Errorf("limits = %+v resources = %+v", sc.Limits, sc.Resources)
 	}
 	if sc.StopReason != "" {
