@@ -172,7 +172,8 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 	p := parser{getenv: getenv}
 	cfg := Config{
 		Host:               p.str("SERVER_HOST", ""),
-		Port:               p.str("SERVER_PORT", "8080"),
+		// PORT is what hosting platforms set; SERVER_PORT wins when both are.
+		Port:               p.str("SERVER_PORT", p.str("PORT", "8080")),
 		LogLevel:           p.level("LOG_LEVEL", slog.LevelInfo),
 		MaxConcurrentScans: p.int("MAX_CONCURRENT_SCANS", 3, 1),
 		QueueSize:          p.int("SCAN_QUEUE_SIZE", 100, 1),

@@ -1,0 +1,79 @@
+# Deploys the Go API to the deploy panel (deploy.imanandhu.in).
+#
+# No secrets: GitHub signs a token that proves which repository, branch and
+# workflow the build came from, and the panel accepts only this file of
+# this repository (the service's "own deploy workflow"). This repository is
+# public, so it cannot call the panel's private shared workflow and carries
+# the steps itself. Pull requests from forks never deploy: they run neither
+# on a push to main nor by hand, and GitHub gives them no token.
+name: Deploy to the panel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - ".github/workflows/deploy-panel.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # lets the job prove to the panel which repo and branch it built
+    concurrency:
+      group: deploy-websitemapper
+      cancel-in-progress: false
+    env:
+      SERVICE: websitemapper
+      PANEL_URL: https://deploy.imanandhu.in
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/app" ./cmd/server
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          # A token for this job, issued for the panel's address. It lasts
+          # minutes and the panel accepts it once.
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$PANEL_URL" | jq -r .value)
+          echo "::add-mask::$token"
+          echo "Sending $(du -h "$RUNNER_TEMP/app" | cut -f1) to $PANEL_URL for $SERVICE…"
+          status=$(curl -sS -o "$RUNNER_TEMP/answer.json" -w '%{http_code}' --max-time 300 \
+            -X POST "$PANEL_URL/api/upload?service=$SERVICE" \
+            -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$RUNNER_TEMP/app")
+          if [ "$status" = 200 ]; then
+            jq -r .message "$RUNNER_TEMP/answer.json"
+          else
+            echo "::error::The panel answered $status"
+            jq -r '.error // .' "$RUNNER_TEMP/answer.json" 2>/dev/null || cat "$RUNNER_TEMP/answer.json"
+            exit 1
+          fi
