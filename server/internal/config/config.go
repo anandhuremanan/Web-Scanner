@@ -170,7 +170,7 @@ type ScanConfig struct {
 
 // DefaultUserAgent is what the scanner calls itself in every request. The
 // link explains to the sites it visits what it is and how to opt out.
-const DefaultUserAgent = "WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)"
+const DefaultUserAgent = "WebScanner/1.0 (+https://webscanner.pflabs.in/bot)"
 
 // Load reads configuration from the process environment.
 func Load() (Config, error) {

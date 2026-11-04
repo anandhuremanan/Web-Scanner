@@ -539,7 +539,7 @@ logged.
 **Opting out.** `SCAN_EXCLUDED_DOMAINS` lists domains whose owners asked not
 to be scanned, comma separated; scans of them and of their subdomains get
 `403`. Every request the scanner sends names it with `SCAN_USER_AGENT`,
-by default `WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)`: the link
+by default `WebScanner/1.0 (+https://webscanner.pflabs.in/bot)`: the link
 is the web client's `/bot` page, which tells site owners what the scanner
 does and how to have their domain excluded.
 

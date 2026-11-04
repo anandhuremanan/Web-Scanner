@@ -40,7 +40,7 @@ cat >"$dist/webscanner.rb" <<EOF
 # each release. Install with: brew install ${repo%%/*}/tap/webscanner
 class Webscanner < Formula
   desc "List a domain's subdomains and pages from public sources"
-  homepage "https://webscanner.imanandhu.in/cli"
+  homepage "https://webscanner.pflabs.in/cli"
   version "$version"
   license "MIT"
 
@@ -80,7 +80,7 @@ cat >"$dist/webscanner.json" <<EOF
 {
     "version": "$version",
     "description": "List a domain's subdomains and pages from public sources",
-    "homepage": "https://webscanner.imanandhu.in/cli",
+    "homepage": "https://webscanner.pflabs.in/cli",
     "license": "MIT",
     "architecture": {
         "64bit": {
