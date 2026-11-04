@@ -214,7 +214,7 @@ type poolEngine struct {
 	mu        sync.Mutex
 	perScan   map[string]*atomic.Int64 // completed operations
 	finished  map[string]time.Time
-	afterStop atomic.Int64 // operations started after the scan's ctx ended
+	afterStop atomic.Int64 // slots granted although the scan had already ended
 }
 
 func newPoolEngine(pool *resource.Pool, workers, ops int, hold time.Duration) *poolEngine {
@@ -240,11 +240,15 @@ func (e *poolEngine) Discover(ctx context.Context, in discovery.Input, emit disc
 				if e.ops > 0 && remaining.Add(-1) < 0 {
 					return
 				}
+				// Checked before asking: a check after Acquire returns would
+				// also count a slot granted just before the scan was
+				// cancelled, when the cancel lands in between.
+				ended := ctx.Err() != nil
 				release, _, err := e.pool.Acquire(ctx)
 				if err != nil {
 					return
 				}
-				if ctx.Err() != nil {
+				if ended {
 					e.afterStop.Add(1)
 				}
 				time.Sleep(e.hold)
