@@ -1,6 +1,6 @@
 # Installs the latest webscanner command-line tool on Windows.
 #
-#   irm https://raw.githubusercontent.com/Probably-Fine-Labs/Web-Scanner/main/cli/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.ps1 | iex
 #
 # Settings (optional, as environment variables):
 #   WEBSCANNER_VERSION   a version such as 1.0.0 (default: the latest)
@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 # Windows PowerShell 5.1 may not offer TLS 1.2 by default; GitHub needs it.
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-$repo = 'Probably-Fine-Labs/Web-Scanner'
+$repo = 'anandhuremanan/Web-Scanner'
 
 # Stops the script with a message. It throws rather than calling exit: run
 # through "irm ... | iex", exit would close the user's PowerShell window.
