@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs the latest webscanner command-line tool on Linux or macOS.
 #
-#   curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/anandhuremanan/Web-Scanner/main/cli/install.sh | sh
+#   curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/Probably-Fine-Labs/Web-Scanner/main/cli/install.sh | sh
 #
 # Settings (optional, as environment variables):
 #   WEBSCANNER_VERSION   a version such as 1.0.0 (default: the latest)
@@ -9,7 +9,7 @@
 #                        writable, otherwise ~/.local/bin)
 set -eu
 
-repo="anandhuremanan/Web-Scanner"
+repo="Probably-Fine-Labs/Web-Scanner"
 
 fail() {
 	echo "webscanner install: $*" >&2

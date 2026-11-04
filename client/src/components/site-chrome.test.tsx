@@ -31,8 +31,8 @@ describe("SiteFooter", () => {
     expect(screen.getByText("Made by Probably Fine Labs")).toBeTruthy();
     // The credit is plain text: no link to a personal site.
     expect(screen.queryByRole("link", { name: /Probably Fine Labs/ })).toBeNull();
-    expect(href("Source on GitHub")).toBe("https://github.com/anandhuremanan/Web-Scanner");
-    expect(href("MIT License")).toBe("https://github.com/anandhuremanan/Web-Scanner/blob/main/LICENSE");
+    expect(href("Source on GitHub")).toBe("https://github.com/Probably-Fine-Labs/Web-Scanner");
+    expect(href("MIT License")).toBe("https://github.com/Probably-Fine-Labs/Web-Scanner/blob/main/LICENSE");
     expect(href("Terms & Privacy")).toBe("/terms");
     // Links that open another site do so safely.
     for (const link of screen.getAllByRole("link")) {

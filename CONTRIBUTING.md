@@ -28,7 +28,7 @@ be merged. See [Safety rules](ARCHITECTURE.md#safety-rules).
 You need **Go 1.26+** and **Node.js 20.9+**.
 
 ```sh
-git clone https://github.com/anandhuremanan/Web-Scanner.git
+git clone https://github.com/Probably-Fine-Labs/Web-Scanner.git
 cd Web-Scanner
 
 # Terminal 1: API on :8080
