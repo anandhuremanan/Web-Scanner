@@ -133,6 +133,12 @@ func (h *handler) createScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A domain whose owner opted out. Also before the visitor check.
+	if t, err := discovery.ParseTarget(req.Target); err == nil && h.access.excluded(t.Domain) {
+		writeError(w, http.StatusForbidden, "The owner of this domain has asked for it not to be scanned.")
+		return
+	}
+
 	visitor := h.access.visitor(r)
 	if v := h.access.Verifier; v != nil {
 		ok, err := v.Verify(r.Context(), req.VerificationToken, visitor)

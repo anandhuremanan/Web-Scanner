@@ -38,6 +38,9 @@ type Config struct {
 	// RequireTerms refuses to start a scan unless the request says the
 	// visitor confirmed they may scan the domain and accepted the Terms.
 	RequireTerms bool
+	// ExcludedDomains are domains whose owners asked not to be scanned;
+	// their subdomains are excluded too.
+	ExcludedDomains []string
 	// StartLimit is how many scans one visitor may start per StartWindow
 	// (0: no limit).
 	StartLimit  int
@@ -165,6 +168,10 @@ type ScanConfig struct {
 	AllowPrivateNetworks bool
 }
 
+// DefaultUserAgent is what the scanner calls itself in every request. The
+// link explains to the sites it visits what it is and how to opt out.
+const DefaultUserAgent = "WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)"
+
 // Load reads configuration from the process environment.
 func Load() (Config, error) {
 	return LoadFrom(os.Getenv)
@@ -183,6 +190,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		TurnstileSecret:    p.str("TURNSTILE_SECRET_KEY", ""),
 		TurnstileHostnames: splitList(p.str("TURNSTILE_HOSTNAMES", "")),
 		RequireTerms:       p.bool("SCAN_REQUIRE_TERMS", false),
+		ExcludedDomains:    splitList(strings.ToLower(p.str("SCAN_EXCLUDED_DOMAINS", ""))),
 		StartLimit:         p.int("SCAN_START_LIMIT", 10, 0),
 		StartWindow:        p.duration("SCAN_START_WINDOW", 10*time.Minute),
 		Store: StoreConfig{
@@ -235,7 +243,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 			CTTimeout:            p.duration("SCAN_CT_TIMEOUT", 60*time.Second),
 			RequestsPerSecond:    p.float("SCAN_REQUESTS_PER_SECOND", 5),
 			MaxBodyBytes:         int64(p.int("SCAN_MAX_BODY_BYTES", 2<<20, 1024)),
-			UserAgent:            p.str("SCAN_USER_AGENT", "WebsiteMapper/0.1 (+passive public discovery)"),
+			UserAgent:            p.str("SCAN_USER_AGENT", DefaultUserAgent),
 			AllowPrivateNetworks: p.bool("SCAN_ALLOW_PRIVATE_NETWORKS", false),
 		},
 	}

@@ -39,6 +39,9 @@ type Access struct {
 	// the visitor confirmed they own the domain or have its owner's
 	// permission, and accepted the Terms of Use (acceptedTerms).
 	RequireTerms bool
+	// Excluded are domains whose owners asked not to be scanned; scans of
+	// them and of their subdomains are refused.
+	Excluded []string
 	// Now is the clock; overridable for tests.
 	Now func() time.Time
 }
@@ -79,6 +82,17 @@ func (a Access) visitor(r *http.Request) string {
 		return host
 	}
 	return r.RemoteAddr
+}
+
+// excluded reports whether domain is, or is under, an excluded domain.
+func (a Access) excluded(domain string) bool {
+	for _, e := range a.Excluded {
+		e = strings.Trim(strings.TrimPrefix(e, "*."), ".")
+		if e != "" && (domain == e || strings.HasSuffix(domain, "."+e)) {
+			return true
+		}
+	}
+	return false
 }
 
 // limitKey is what the start limit counts by. An IPv4 address is one

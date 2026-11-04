@@ -128,12 +128,14 @@ func run() error {
 
 	log.Info("API access", "event", "api_access", "restricted_to_web_client", cfg.APIProxySecret != "",
 		"visitors_verified", cfg.TurnstileSecret != "", "terms_required", cfg.RequireTerms,
+		"excluded_domains", len(cfg.ExcludedDomains),
 		"start_limit", cfg.StartLimit, "start_window", cfg.StartWindow)
 	access := api.Access{
 		ProxySecret:  cfg.APIProxySecret,
 		StartLimit:   cfg.StartLimit,
 		StartWindow:  cfg.StartWindow,
 		RequireTerms: cfg.RequireTerms,
+		Excluded:     cfg.ExcludedDomains,
 	}
 	if cfg.TurnstileSecret != "" {
 		access.Verifier = api.Turnstile{Secret: cfg.TurnstileSecret, Hostnames: cfg.TurnstileHostnames}

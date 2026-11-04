@@ -54,7 +54,11 @@ export default function Terms() {
           databases, a public web archive, and DNS. Passive scans never contact the target site.
           Standard and full scans also send it a limited number of ordinary, rate-limited page
           requests. The service never logs in, submits forms, guesses URLs or hostnames, or tests
-          for vulnerabilities.
+          for vulnerabilities. Its requests name it and link to{" "}
+          <Link href="/bot" className="text-accent hover:underline">
+            a page for site owners
+          </Link>{" "}
+          that explains them and how to have a domain excluded.
         </p>
       </Section>
 
