@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { track } from "@/lib/analytics";
 import { createScan } from "@/lib/api";
 import type { ScanMode } from "@/lib/types";
 import { useVerification } from "@/lib/verification";
+import { TermsConsent } from "./terms-consent";
 
 const modes: { id: ScanMode; label: string; detail: string }[] = [
   {
@@ -33,6 +33,7 @@ export function ScanForm() {
   const router = useRouter();
   const [target, setTarget] = useState("");
   const [mode, setMode] = useState<ScanMode>("light");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { attach: attachVerification, getToken } = useVerification();
@@ -43,11 +44,15 @@ export function ScanForm() {
       setError("Enter a domain such as example.com");
       return;
     }
+    if (!agreed) {
+      setError("Tick the box to confirm you may scan this domain.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const verificationToken = await getToken();
-      const scan = await createScan(target.trim(), mode, { verificationToken });
+      const scan = await createScan(target.trim(), mode, { verificationToken, acceptedTerms: true });
       track("scan_started", {
         mode,
         outcome: scan.reused ? "reused" : scan.coalesced ? "joined" : "new",
@@ -114,21 +119,12 @@ export function ScanForm() {
           </label>
         ))}
       </fieldset>
+      <TermsConsent id="accept-terms" checked={agreed} onChange={setAgreed} />
       {error && (
         <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
-      {/* Agreement by starting a scan, rather than another box to tick:
-          the visitor check may already show one. */}
-      <p className="text-xs text-muted">
-        By starting a scan you confirm that you own this domain or have permission to scan it, and
-        you agree to the{" "}
-        <Link href="/terms" className="underline underline-offset-2 hover:text-fg">
-          Terms of Use
-        </Link>
-        .
-      </p>
     </form>
   );
 }

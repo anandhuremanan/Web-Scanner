@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** The date these terms last changed; update it with every change. */
-const updated = "14 October 2026";
+const updated = "4 November 2026";
 
 /**
  * Terms of Use and Privacy notice, on one page. Keep them true to what the
@@ -25,15 +25,17 @@ export default function Terms() {
 
       <p>
         Web Scanner lists what public sources record about a website: its subdomains, their pages,
-        and where each one was found. By starting a scan, you agree to these terms.
+        and where each one was found. Before every scan you confirm that you own the domain or have
+        explicit permission from its owner to inspect it, and that you agree to these terms.
       </p>
 
       <h2 className="border-b border-border pb-1 text-lg font-semibold">Terms of Use</h2>
 
       <Section title="Permitted use">
         <p>
-          Scan only domains you own or have the owner&rsquo;s permission to inspect. You are
-          responsible for the scans you start and for how you use the results.
+          Scan only domains you own or have the owner&rsquo;s explicit permission to inspect, and
+          confirm this each time you start a scan. You are responsible for the scans you start, for
+          the truth of that confirmation, and for how you use the results.
         </p>
       </Section>
 
@@ -115,7 +117,8 @@ export default function Terms() {
           </li>
           <li>
             Our server keeps brief operational logs, including scanned domains, to run and protect
-            the service.
+            the service. For each scan they record that you confirmed you may scan the domain and
+            accepted these terms.
           </li>
           <li>
             The domain you enter is sent to the public sources above. In standard and full scans,

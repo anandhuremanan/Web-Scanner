@@ -103,14 +103,28 @@ describe("ResultsView for a finished scan", () => {
     );
   });
 
-  it("starts a fresh scan of the same target and mode on request", async () => {
+  it("starts a fresh scan of the same target and mode once the visitor confirms", async () => {
     render(<ResultsView scan={scan("completed")} result={finished} />);
     fireEvent.click(screen.getByRole("button", { name: "Scan again" }));
+    const start = screen.getByRole("button", { name: "Start scan" });
+    expect(start).toHaveProperty("disabled", true); // not before the box is ticked
+    expect(api.createScan).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /I confirm that I own this domain/ }));
+    fireEvent.click(start);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/scans/s2"));
     expect(api.createScan).toHaveBeenCalledWith("example.com", "light", {
       fresh: true,
       verificationToken: undefined,
+      acceptedTerms: true,
     });
+  });
+
+  it("lets the visitor back out of scanning again", () => {
+    render(<ResultsView scan={scan("completed")} result={finished} />);
+    fireEvent.click(screen.getByRole("button", { name: "Scan again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.getByRole("button", { name: "Scan again" })).toBeTruthy();
   });
 });
 
