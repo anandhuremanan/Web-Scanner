@@ -35,6 +35,9 @@ type Config struct {
 	TurnstileSecret string
 	// TurnstileHostnames, if set, are the only sites whose tokens count.
 	TurnstileHostnames []string
+	// RequireTerms refuses to start a scan unless the request says the
+	// visitor confirmed they may scan the domain and accepted the Terms.
+	RequireTerms bool
 	// StartLimit is how many scans one visitor may start per StartWindow
 	// (0: no limit).
 	StartLimit  int
@@ -179,6 +182,7 @@ func LoadFrom(getenv func(string) string) (Config, error) {
 		APIProxySecret:     p.str("API_PROXY_SECRET", ""),
 		TurnstileSecret:    p.str("TURNSTILE_SECRET_KEY", ""),
 		TurnstileHostnames: splitList(p.str("TURNSTILE_HOSTNAMES", "")),
+		RequireTerms:       p.bool("SCAN_REQUIRE_TERMS", false),
 		StartLimit:         p.int("SCAN_START_LIMIT", 10, 0),
 		StartWindow:        p.duration("SCAN_START_WINDOW", 10*time.Minute),
 		Store: StoreConfig{

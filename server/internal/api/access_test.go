@@ -3,6 +3,7 @@ package api_test
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,13 +22,19 @@ import (
 // almost at once and, like in production, recent ones are reused.
 func serverWith(t *testing.T, access api.Access) *httptest.Server {
 	t.Helper()
+	return serverWithLog(t, access, quiet)
+}
+
+// serverWithLog is serverWith, logging to log.
+func serverWithLog(t *testing.T, access api.Access, log *slog.Logger) *httptest.Server {
+	t.Helper()
 	svc := scan.NewService(storetest.New(t, store.Options{MaxScans: 50}),
 		[]scan.Stage{{ID: "crawl", Label: "Crawling", Engines: []discovery.Engine{oneFinding{}}}},
 		scan.Options{QueueSize: 50, MaxRunning: 4, ProgressInterval: 10 * time.Millisecond, ReuseTTL: time.Hour}, quiet)
 	ctx, cancel := context.WithCancel(context.Background())
 	svc.Start(ctx)
 	t.Cleanup(func() { cancel(); svc.Wait() })
-	srv := httptest.NewServer(api.NewHandler(svc, quiet, access))
+	srv := httptest.NewServer(api.NewHandler(svc, log, access))
 	t.Cleanup(srv.Close)
 	return srv
 }

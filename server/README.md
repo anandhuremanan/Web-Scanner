@@ -526,6 +526,16 @@ nothing. A missing, invalid or already used token gets `403`; if Cloudflare
 cannot be reached the answer is `503`, never a silent pass. Reading results
 needs no token. The start limit still applies on top.
 
+**Confirming the right to scan.** Set `SCAN_REQUIRE_TERMS=true` to refuse
+every `POST /api/scans` that does not carry `"acceptedTerms": true`: the
+visitor ticked the box confirming they own the domain or have explicit
+permission from its owner to inspect it, and accepted the Terms of Use.
+Without it the answer is `400`, given before the Turnstile check so the
+visitor's token is not used up. Each scan request is logged as
+`event=scan_requested` with its scan, target, mode, whether it started,
+joined or reused a scan, and `terms_accepted`; the visitor's address is not
+logged.
+
 Keep the secret out of files that are replaced from the repository. On the
 deployment described below, put it in its own file readable only by root
 and load it with a second `EnvironmentFile=` line in the unit.
@@ -557,13 +567,15 @@ caller's lookup), `evictions`, `expired`, `rejected`, `entries` and
 Request:
 
 ```json
-{ "target": "example.com", "mode": "light", "fresh": false }
+{ "target": "example.com", "mode": "light", "fresh": false, "acceptedTerms": true }
 ```
 
 `target` can be a bare domain or a URL such as `https://www.example.com/docs`.
 `mode` is `passive`, `light` or `full` (see Scan modes); it may be omitted.
 Scans in different modes never coalesce. `fresh` (optional) asks for a new
-scan even when a recent one could be returned.
+scan even when a recent one could be returned. `acceptedTerms` says the
+caller owns the domain or has its owner's permission and accepts the Terms
+of Use; it is required when `SCAN_REQUIRE_TERMS` is set.
 
 Response `202 Accepted` (with a `Location` header) contains the scan status
 object described below. It returns immediately: `"status": "running"` if
