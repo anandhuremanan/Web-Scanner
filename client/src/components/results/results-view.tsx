@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { track } from "@/lib/analytics";
+import { TermsConsent } from "@/components/terms-consent";
 import { createScan, exportUrl, getHosts } from "@/lib/api";
 import {
   formatDuration,
@@ -258,9 +259,15 @@ export function ResultsView({ scan, result, live = false }: Props) {
   );
 }
 
-/** Starts a new scan of the same target and mode, ignoring recent results. */
+/**
+ * Starts a new scan of the same target and mode, ignoring recent results.
+ * Like any scan it needs the visitor's confirmation first: the page may
+ * have been opened from someone else's link.
+ */
 function ScanAgain({ scan }: { scan: Scan }) {
   const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Checked only when the button is pressed, not on every result page.
@@ -271,7 +278,11 @@ function ScanAgain({ scan }: { scan: Scan }) {
     setError(null);
     try {
       const verificationToken = await getToken();
-      const next = await createScan(scan.target, scan.mode, { fresh: true, verificationToken });
+      const next = await createScan(scan.target, scan.mode, {
+        fresh: true,
+        verificationToken,
+        acceptedTerms: true,
+      });
       track("scan_again", { mode: scan.mode });
       router.push(`/scans/${next.id}`);
     } catch (err) {
@@ -280,23 +291,45 @@ function ScanAgain({ scan }: { scan: Scan }) {
     }
   }
 
-  return (
-    <>
+  if (!confirming) {
+    return (
       <button
         type="button"
-        onClick={onClick}
-        disabled={busy}
-        className="text-accent hover:underline disabled:opacity-50"
+        onClick={() => setConfirming(true)}
+        className="text-accent hover:underline print:hidden"
       >
-        {busy ? "Starting…" : "Scan again"}
+        Scan again
       </button>
-      <div ref={attachVerification} />
-      {error && (
-        <span role="alert" className="text-warn">
-          {error}
-        </span>
-      )}
-    </>
+    );
+  }
+  return (
+    <span className="basis-full space-y-2 rounded-md border border-border p-3 print:hidden">
+      <TermsConsent id="accept-terms-again" checked={agreed} onChange={setAgreed} />
+      <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={busy || !agreed}
+          className="rounded-md bg-fg px-3 py-1 font-medium text-bg hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? "Starting…" : "Start scan"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          disabled={busy}
+          className="text-accent hover:underline disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        {error && (
+          <span role="alert" className="text-warn">
+            {error}
+          </span>
+        )}
+      </span>
+      <span ref={attachVerification} className="block" />
+    </span>
   );
 }
 

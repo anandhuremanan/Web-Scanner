@@ -63,6 +63,11 @@ export interface CreateOptions {
   fresh?: boolean;
   /** The visitor-verification token, when the site verifies visitors. */
   verificationToken?: string;
+  /**
+   * The visitor confirmed they own the domain or have its owner's
+   * permission, and accepted the Terms of Use.
+   */
+  acceptedTerms?: boolean;
 }
 
 /**
@@ -84,6 +89,7 @@ export async function createScan(
       mode,
       fresh: options.fresh ?? false,
       verificationToken: options.verificationToken,
+      acceptedTerms: options.acceptedTerms,
     }),
   });
   rememberSubscription(scan);
