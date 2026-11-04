@@ -35,6 +35,10 @@ type Access struct {
 	// Verifier, if set, must accept a challenge token sent with every
 	// request to start a scan (see Turnstile).
 	Verifier Verifier
+	// RequireTerms, if set, refuses to start a scan unless the request says
+	// the visitor confirmed they own the domain or have its owner's
+	// permission, and accepted the Terms of Use (acceptedTerms).
+	RequireTerms bool
 	// Now is the clock; overridable for tests.
 	Now func() time.Time
 }

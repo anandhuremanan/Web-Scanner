@@ -110,6 +110,10 @@ type createRequest struct {
 	// VerificationToken is the challenge token from the visitor's browser,
 	// required when the server verifies visitors.
 	VerificationToken string `json:"verificationToken"`
+	// AcceptedTerms says the visitor confirmed they own the domain or have
+	// explicit permission from its owner to inspect it, and accepted the
+	// Terms of Use.
+	AcceptedTerms bool `json:"acceptedTerms"`
 }
 
 func (h *handler) createScan(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +122,14 @@ func (h *handler) createScan(w http.ResponseWriter, r *http.Request) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, `request body must be JSON like {"target": "example.com"}`)
+		return
+	}
+
+	// Before the visitor check, so a refused request does not use up its
+	// one-time token.
+	if h.access.RequireTerms && !req.AcceptedTerms {
+		writeError(w, http.StatusBadRequest,
+			"Confirm that you own this domain or have permission from its owner to inspect it, and accept the Terms of Use.")
 		return
 	}
 
@@ -166,6 +178,17 @@ func (h *handler) createScan(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not create scan")
 		return
 	}
+	// The record that the visitor confirmed their right to scan this domain
+	// and accepted the Terms. Like every log here, without their address.
+	outcome := "started"
+	switch {
+	case sc.Reused:
+		outcome = "reused"
+	case sc.Coalesced:
+		outcome = "joined"
+	}
+	h.log.Info("scan requested", "event", "scan_requested", "scan_id", sc.ID, "target", sc.Target,
+		"mode", sc.Mode, "outcome", outcome, "terms_accepted", req.AcceptedTerms)
 	w.Header().Set("Location", "/api/scans/"+sc.ID)
 	if sc.Reused {
 		// A recent finished scan: nothing was started.
