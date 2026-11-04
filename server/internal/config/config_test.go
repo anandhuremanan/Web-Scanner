@@ -145,7 +145,7 @@ func TestUserAgentAndExcludedDomains(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Scan.UserAgent != "WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)" {
+	if cfg.Scan.UserAgent != "WebScanner/1.0 (+https://webscanner.pflabs.in/bot)" {
 		t.Errorf("user agent = %q", cfg.Scan.UserAgent)
 	}
 	if len(cfg.ExcludedDomains) != 2 || cfg.ExcludedDomains[0] != "example.gov" || cfg.ExcludedDomains[1] != "agency.example" {

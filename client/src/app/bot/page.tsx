@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /** What the scanner calls itself; keep it in step with the server's default. */
-const userAgent = "WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)";
+const userAgent = "WebScanner/1.0 (+https://webscanner.pflabs.in/bot)";
 
 /** Where site owners reach us to opt out, object or ask a question. */
 const contactUrl = "https://www.pflabs.in/contact";

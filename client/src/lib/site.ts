@@ -2,7 +2,7 @@
  * The site's public address, used for canonical links, the sitemap and
  * social previews. Set NEXT_PUBLIC_SITE_URL for another deployment.
  */
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://webscanner.imanandhu.in").replace(/\/$/, "");
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://webscanner.pflabs.in").replace(/\/$/, "");
 
 export const siteName = "Web Scanner";
 
