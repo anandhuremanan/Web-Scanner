@@ -536,6 +536,13 @@ visitor's token is not used up. Each scan request is logged as
 joined or reused a scan, and `terms_accepted`; the visitor's address is not
 logged.
 
+**Opting out.** `SCAN_EXCLUDED_DOMAINS` lists domains whose owners asked not
+to be scanned, comma separated; scans of them and of their subdomains get
+`403`. Every request the scanner sends names it with `SCAN_USER_AGENT`,
+by default `WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)`: the link
+is the web client's `/bot` page, which tells site owners what the scanner
+does and how to have their domain excluded.
+
 Keep the secret out of files that are replaced from the repository. On the
 deployment described below, put it in its own file readable only by root
 and load it with a second `EnvironmentFile=` line in the unit.

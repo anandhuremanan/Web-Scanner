@@ -137,3 +137,18 @@ func TestPortFallback(t *testing.T) {
 		}
 	}
 }
+
+// The scanner names itself with a link that explains it to the sites it
+// visits, and opted-out domains are read as a list.
+func TestUserAgentAndExcludedDomains(t *testing.T) {
+	cfg, err := LoadFrom(env(map[string]string{"SCAN_EXCLUDED_DOMAINS": "Example.GOV, agency.example"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Scan.UserAgent != "WebScanner/1.0 (+https://webscanner.imanandhu.in/bot)" {
+		t.Errorf("user agent = %q", cfg.Scan.UserAgent)
+	}
+	if len(cfg.ExcludedDomains) != 2 || cfg.ExcludedDomains[0] != "example.gov" || cfg.ExcludedDomains[1] != "agency.example" {
+		t.Errorf("excluded = %q", cfg.ExcludedDomains)
+	}
+}

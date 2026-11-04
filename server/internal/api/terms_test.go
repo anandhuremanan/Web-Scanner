@@ -79,3 +79,22 @@ func TestTermsAreOptionalByDefault(t *testing.T) {
 		t.Errorf("log:\n%s", logs.String())
 	}
 }
+
+// A domain whose owner opted out cannot be scanned, nor its subdomains;
+// a look-alike name can.
+func TestExcludedDomainsAreRefused(t *testing.T) {
+	v := &fakeVerifier{}
+	srv := serverWith(t, api.Access{Verifier: v, Excluded: []string{"example.gov", "*.agency.example"}})
+	for _, target := range []string{"example.gov", "https://WWW.example.gov/page", "portal.example.gov", "x.agency.example"} {
+		code, out, _ := send(t, "POST", srv.URL+"/api/scans", `{"target":"`+target+`","verificationToken":"human"}`, nil)
+		if code != http.StatusForbidden || !strings.Contains(out["error"].(string), "asked for it not to be scanned") {
+			t.Errorf("%s = %d %v", target, code, out)
+		}
+	}
+	if len(v.visitors) != 0 {
+		t.Errorf("the visitor check ran for an excluded domain: %v", v.visitors)
+	}
+	if code, out, _ := send(t, "POST", srv.URL+"/api/scans", `{"target":"notexample.gov","verificationToken":"human"}`, nil); code != http.StatusAccepted {
+		t.Errorf("a look-alike name was refused: %d %v", code, out)
+	}
+}
