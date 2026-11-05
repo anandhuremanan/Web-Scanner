@@ -1,4 +1,4 @@
-# Deploys the Go API to the deploy panel (deploy.imanandhu.in).
+# Deploys the Go API to the deploy panel (deploy.pflabs.in).
 #
 # No secrets: GitHub signs a token that proves which repository, branch and
 # workflow the build came from, and the panel accepts only this file of
@@ -30,7 +30,7 @@ jobs:
       cancel-in-progress: false
     env:
       SERVICE: websitemapper
-      PANEL_URL: https://deploy.imanandhu.in
+      PANEL_URL: https://deploy.pflabs.in
     defaults:
       run:
         working-directory: server
